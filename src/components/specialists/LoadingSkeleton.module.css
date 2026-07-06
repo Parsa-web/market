@@ -1,0 +1,73 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--border);
+  margin-bottom: 14px;
+}
+
+.line {
+  height: 14px;
+  background: var(--border);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.lineShort {
+  width: 60%;
+}
+
+.lineMedium {
+  width: 80%;
+}
+
+.skillRow {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+.skill {
+  height: 22px;
+  width: 50px;
+  background: var(--border);
+  border-radius: 6px;
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

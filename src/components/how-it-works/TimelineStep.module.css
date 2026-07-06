@@ -1,0 +1,115 @@
+.step {
+  display: flex;
+  gap: 24px;
+  padding: 20px 0;
+  position: relative;
+}
+
+.stepSpecialist {
+  flex-direction: row-reverse;
+}
+
+.stepNumber {
+  position: absolute;
+  inset-inline-start: -40px;
+  top: 20px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  z-index: 2;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+
+.stepNumberSpecialist {
+  inset-inline-start: auto;
+  inset-inline-end: -40px;
+  box-shadow: 0 0 0 4px var(--surface);
+}
+
+.content {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 28px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.content:hover {
+  border-color: rgba(37, 99, 235, 0.12);
+  box-shadow: var(--shadow-sm);
+}
+
+.contentHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.contentHeaderSpecialist {
+  flex-direction: row-reverse;
+}
+
+.stepIcon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.stepTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stepDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-inline-start: 28px;
+}
+
+.stepDescSpecialist {
+  margin-inline-start: 0;
+  margin-inline-end: 28px;
+  text-align: end;
+}
+
+@media (max-width: 768px) {
+  .step {
+    padding: 16px 0;
+  }
+
+  .stepNumber {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    inset-inline-start: -32px;
+    top: 16px;
+  }
+
+  .stepNumberSpecialist {
+    inset-inline-start: auto;
+    inset-inline-end: -32px;
+  }
+
+  .content {
+    padding: 16px 18px;
+  }
+
+  .stepDesc {
+    margin-inline-start: 0;
+  }
+
+  .stepDescSpecialist {
+    margin-inline-end: 0;
+  }
+}

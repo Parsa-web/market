@@ -1,0 +1,120 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  animation: pulse 1.5s ease-in-out infinite;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  height: 24px;
+  width: 60px;
+  background: var(--border);
+  border-radius: 6px;
+}
+
+.line {
+  height: 14px;
+  background: var(--border);
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.lineTitle {
+  width: 70%;
+  height: 18px;
+  margin-top: 4px;
+}
+
+.lineShort {
+  width: 60%;
+}
+
+.lineMedium {
+  width: 80%;
+}
+
+.metaRow {
+  display: flex;
+  gap: 16px;
+}
+
+.metaRow .line {
+  width: 100px;
+}
+
+.infoRow {
+  display: flex;
+  gap: 6px;
+}
+
+.infoRow .line {
+  width: 80px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.skillRow {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0;
+}
+
+.skill {
+  height: 22px;
+  width: 60px;
+  background: var(--border);
+  border-radius: 6px;
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.footerRow .line {
+  width: 100px;
+}
+
+.btnPlaceholder {
+  height: 32px;
+  width: 100px;
+  background: var(--border);
+  border-radius: 8px;
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

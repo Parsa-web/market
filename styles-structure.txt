@@ -1,0 +1,33 @@
+/styles
+├── base/
+│   ├── reset.css
+│   ├── typography.css
+│   └── variables.css
+│
+├── layout/
+│   ├── container.css
+│   ├── grid.css
+│   ├── dashboard-layout.css
+│   └── auth-layout.css
+│
+├── components/
+│   ├── buttons.css
+│   ├── inputs.css
+│   ├── cards.css
+│   ├── badges.css
+│   ├── tables.css
+│   └── modals.css
+│
+├── pages/
+│   ├── auth.css
+│   ├── dashboard.css
+│   ├── profile.css
+│   ├── messages.css
+│
+├── utilities/
+│   ├── spacing.css
+│   ├── rtl.css
+│   ├── animations.css
+│   └── helpers.css
+│
+└── main.css

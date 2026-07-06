@@ -1,0 +1,53 @@
+.wrap {
+  margin-bottom: 40px;
+}
+
+.wrap.start {
+  text-align: start;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  line-height: 1.4;
+  position: relative;
+  display: inline-block;
+}
+
+.title::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 3px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary), rgba(37, 99, 235, 0.3));
+}
+
+.start .title {
+  text-align: start;
+}
+
+.start .title::after {
+  margin-inline-start: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 560px;
+  margin-top: 4px;
+}
+
+.start .subtitle {
+  text-align: start;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 20px;
+  }
+}

@@ -1,0 +1,36 @@
+.chip {
+  padding: 7px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.active:hover {
+  background: var(--primary-dark);
+  color: #fff;
+  border-color: var(--primary-dark);
+}

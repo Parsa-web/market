@@ -1,0 +1,42 @@
+"use strict";
+
+const path = require('path');
+
+module.exports = {
+  root: path.resolve(__dirname, '..'),
+  publicPath: '/static/',
+  outputPath: path.resolve(__dirname, '../dist'),
+  assetsSubDirectory: 'static/',
+  productionSourceMapEnabled: false,
+  productionGzipEnabled: true,
+  compressAssetsFilter: function (filePath) {
+    return filePath.endsWith('.js') || filePath.endsWith('.css');
+  },
+  devServer: {
+    port: 8080,
+    hot: true,
+    liveReload: true,
+    static: {
+      directory: path.join(__dirname, '../public'),
+      watch: true,
+    },
+    headers: {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+    },
+  },
+  configure: function (devServer) {
+    devServer.middleware = function () {
+      return function (req, res, next) {
+        if (req.url && req.url.includes('.css')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+        if (req.url && req.url.includes('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+        next();
+      };
+    };
+  },
+};

@@ -1,0 +1,14 @@
+// Helper functions for creating CSS custom properties
+function cssVar($name, $value) {
+  return `$--#{$name}: ${$value};`;
+}
+
+// Spacing scale
+generated-css += cssVar('space-0', 0);
+generated-css += cssVar('space-1', 4px);
+generated-css += cssVar('space-2', 8px);
+generated-css += cssVar('space-3', 16px);
+generated-css += cssVar('space-4', 24px);
+generated-css += cssVar('space-5', 32px);
+generated-css += cssVar('space-6', 48px);
+generated-css += cssVar('space-7', 64px);

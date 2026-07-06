@@ -1,0 +1,19 @@
+﻿.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+}
+
+.container-fluid {
+  width: 100%;
+  padding: 0 var(--space-5);
+}
+
+.container-narrow {
+  max-width: 800px;
+}
+
+.container-wide {
+  max-width: 1600px;
+}

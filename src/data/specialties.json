@@ -1,0 +1,44 @@
+{
+  "specialties": [
+    {
+      "id": "industrial-repair",
+      "title": "تعمیرات صنعتی",
+      "example": "تعمیر خط تولید، نگهداری پیشگیرانه"
+    },
+    {
+      "id": "automation-plc",
+      "title": "اتوماسیون و PLC",
+      "example": "PLC Siemens، SCADA، HMI"
+    },
+    {
+      "id": "mechanical",
+      "title": "مکانیک ماشین‌آلات",
+      "example": "هیدرولیک، پنوماتیک، CNC"
+    },
+    {
+      "id": "electrical",
+      "title": "برق صنعتی",
+      "example": "تابلو برق، درایو، اینورتر"
+    },
+    {
+      "id": "instrumentation",
+      "title": "ابزار دقیق",
+      "example": "کالیبراسیون، سنسور، کنترل"
+    },
+    {
+      "id": "utilities",
+      "title": "تأسیسات",
+      "example": "بخار، سرمایش، هوای فشرده"
+    },
+    {
+      "id": "robotics",
+      "title": "رباتیک صنعتی",
+      "example": "ربات جوش، ABB، KUKA"
+    },
+    {
+      "id": "turbine",
+      "title": "توربین و تجهیزات دوار",
+      "example": "توربین گاز، کمپرسور"
+    }
+  ]
+}

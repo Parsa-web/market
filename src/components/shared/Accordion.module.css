@@ -1,0 +1,79 @@
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.item:hover {
+  border-color: rgba(37, 99, 235, 0.12);
+}
+
+.trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: right;
+  font-family: var(--font);
+  transition: background 0.2s ease;
+}
+
+.trigger:hover {
+  background: rgba(37, 99, 235, 0.02);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.question {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.active .question {
+  color: var(--primary);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.25s ease, color 0.2s ease;
+}
+
+.iconActive {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.content {
+  overflow: hidden;
+}
+
+.answer {
+  padding: 0 20px 18px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.9;
+  margin: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-inline: 20px;
+  padding-inline: 0;
+}

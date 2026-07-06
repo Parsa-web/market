@@ -1,0 +1,42 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.open {
+  background: rgba(22, 163, 74, 0.08);
+  color: #166534;
+}
+
+.open .dot {
+  background: #16A34A;
+}
+
+.closed {
+  background: rgba(100, 116, 139, 0.08);
+  color: #475569;
+}
+
+.closed .dot {
+  background: #94A3B8;
+}
+
+.in_progress {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1e40af;
+}
+
+.in_progress .dot {
+  background: #2563EB;
+}
