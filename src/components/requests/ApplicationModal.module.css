@@ -96,9 +96,9 @@
   font-size: 14px;
   font-family: var(--font);
   color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--surface);
+  border: 2px solid #CBD5E1;
+  border-radius: 12px;
   outline: none;
   resize: vertical;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -116,13 +116,13 @@
 .select,
 .input {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 14px;
   font-size: 14px;
   font-family: var(--font);
   color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--surface);
+  border: 2px solid #CBD5E1;
+  border-radius: 12px;
   outline: none;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;

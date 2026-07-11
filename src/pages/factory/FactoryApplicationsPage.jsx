@@ -4,7 +4,7 @@ import Button from '../../components/common/Button'
 import EmptyState from '../../components/dashboard/EmptyState'
 import Modal from '../../components/dashboard/Modal'
 import Badge from '../../components/dashboard/Badge'
-import { formatPersianDate, getApplicationStatusVariant } from '../../utils/dashboardUtils'
+import { formatPersianDate, getApplicationStatusVariant, APPLICATION_STATUS_LABELS } from '../../utils/dashboardUtils'
 import { useFactory } from '../../hooks/useFactory'
 
 export default function FactoryApplicationsPage() {
@@ -21,24 +21,34 @@ export default function FactoryApplicationsPage() {
     markApplicationsSeen()
   }, [markApplicationsSeen])
 
-  const handleAccept = (app) => {
-    updateApplicationStatus(app.id, 'پذیرفته شده')
-    showSuccess(`درخواست ${app.specialistName} پذیرفته شد`)
-    setViewItem(null)
+  const handleAccept = async (app) => {
+    try {
+      await updateApplicationStatus(app.id, 'accepted')
+      showSuccess('درخواست متخصص پذیرفته شد. پروژه شروع شد.')
+      setViewItem(null)
+    } catch {
+      showSuccess('خطا در پذیرش درخواست')
+    }
   }
 
-  const handleReject = (app) => {
-    updateApplicationStatus(app.id, 'رد شده')
-    showSuccess(`درخواست ${app.specialistName} رد شد`)
-    setViewItem(null)
+  const handleReject = async (app) => {
+    try {
+      await updateApplicationStatus(app.id, 'rejected')
+      showSuccess('درخواست متخصص رد شد')
+      setViewItem(null)
+    } catch {
+      showSuccess('خطا در رد درخواست')
+    }
   }
 
-  if (applications.length === 0) {
+  const appList = applications || []
+
+  if (appList.length === 0) {
     return (
       <div className="dash-page">
         <EmptyState
           title="درخواستی دریافت نشده"
-          description="وقتی متخصصان درخواست همکاری ارسال کنند، اینجا نمایش داده می‌شود."
+          description="وقتی متخصصان برای نیازهای صنعتی شما اعلام آمادگی کنند، اینجا نمایش داده می‌شود."
         />
       </div>
     )
@@ -48,14 +58,14 @@ export default function FactoryApplicationsPage() {
     <div className="dash-page">
       {successMsg && <div className="dash-toast dash-toast--success">{successMsg}</div>}
 
-      <p className="dash-page-desc">{applications.length} درخواست همکاری دریافت شده</p>
+      <p className="dash-page-desc">{appList.length} درخواست همکاری دریافت شده</p>
 
       <div className="dash-table-card">
         <table className="dash-table">
           <thead>
             <tr>
               <th>متخصص</th>
-              <th>درخواست مرتبط</th>
+              <th>نیاز صنعتی</th>
               <th>پیام</th>
               <th>وضعیت</th>
               <th>تاریخ</th>
@@ -63,19 +73,23 @@ export default function FactoryApplicationsPage() {
             </tr>
           </thead>
           <tbody>
-            {applications.map((app) => (
+            {appList.map((app) => (
               <tr key={app.id}>
-                <td className="dash-table-name">{app.specialistName}</td>
+                <td className="dash-table-name">{app.specialistName || `متخصص #${app.specialistId}`}</td>
                 <td>{app.requestTitle}</td>
                 <td className="dash-table-message">{app.message || '—'}</td>
-                <td><Badge variant={getApplicationStatusVariant(app.status)}>{app.status}</Badge></td>
+                <td>
+                  <Badge variant={getApplicationStatusVariant(app.status)}>
+                    {APPLICATION_STATUS_LABELS[app.status] || app.status}
+                  </Badge>
+                </td>
                 <td>{formatPersianDate(app.createdAt)}</td>
                 <td>
                   <div className="dash-table-actions">
                     <Button variant="ghost" className="dash-btn-sm" onClick={() => setViewItem(app)}>
                       <Eye size={14} />
                     </Button>
-                    {app.status === 'در انتظار' && (
+                    {app.status === 'pending' && (
                       <>
                         <Button variant="primary" className="dash-btn-sm" onClick={() => handleAccept(app)}>
                           <Check size={14} />
@@ -93,19 +107,19 @@ export default function FactoryApplicationsPage() {
         </table>
       </div>
 
-      <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="جزئیات درخواست">
+      <Modal open={!!viewItem} onClose={() => setViewItem(null)} title="جزئیات درخواست همکاری">
         {viewItem && (
           <>
             <div className="dash-application-modal">
               <div className="dash-application-modal-head">
                 <div>
-                  <h3>{viewItem.specialistName}</h3>
+                  <h3>{viewItem.specialistName || `متخصص #${viewItem.specialistId}`}</h3>
                   <p>{viewItem.requestTitle}</p>
                 </div>
               </div>
               <div className="dash-application-modal-grid">
                 <div className="dash-application-modal-item">
-                  <span>درخواست</span>
+                  <span>نیاز صنعتی</span>
                   <strong>{viewItem.requestTitle}</strong>
                 </div>
                 <div className="dash-application-modal-item">
@@ -121,8 +135,12 @@ export default function FactoryApplicationsPage() {
                   <strong>{viewItem.requestBrand || '—'}</strong>
                 </div>
                 <div className="dash-application-modal-item">
-                  <span>شهر</span>
+                  <span>محل</span>
                   <strong>{viewItem.requestCity || '—'}</strong>
+                </div>
+                <div className="dash-application-modal-item">
+                  <span>آماده شروع از</span>
+                  <strong>{viewItem.availableStartDate || '—'}</strong>
                 </div>
               </div>
               {viewItem.message && (
@@ -131,16 +149,24 @@ export default function FactoryApplicationsPage() {
                   <p>{viewItem.message}</p>
                 </div>
               )}
+              {viewItem.additionalDescription && (
+                <div className="dash-application-modal-message">
+                  <span>توضیحات تکمیلی</span>
+                  <p>{viewItem.additionalDescription}</p>
+                </div>
+              )}
               <div className="dash-application-modal-status">
                 <span>وضعیت درخواست</span>
-                <Badge variant={getApplicationStatusVariant(viewItem.status)}>{viewItem.status}</Badge>
+                <Badge variant={getApplicationStatusVariant(viewItem.status)}>
+                  {APPLICATION_STATUS_LABELS[viewItem.status] || viewItem.status}
+                </Badge>
               </div>
             </div>
             <div className="dash-modal-actions">
-              {viewItem.status === 'در انتظار' && (
+              {viewItem.status === 'pending' && (
                 <>
-                  <Button variant="primary" onClick={() => handleAccept(viewItem)}>پذیرش</Button>
-                  <Button variant="outline" onClick={() => handleReject(viewItem)}>رد</Button>
+                  <Button variant="primary" onClick={() => handleAccept(viewItem)}>پذیرش متخصص</Button>
+                  <Button variant="outline" onClick={() => handleReject(viewItem)}>رد درخواست</Button>
                 </>
               )}
               <Button variant="ghost" onClick={() => setViewItem(null)}>بستن</Button>

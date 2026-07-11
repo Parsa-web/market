@@ -1,5 +1,5 @@
 import { Eye, KeyRound, MessageSquare, Send, RefreshCw } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import { useSpecialist } from '../../hooks/useSpecialist'
@@ -23,7 +23,13 @@ export default function SpecialistSettingsPage() {
   const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' })
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
-  const [notifSettings, setNotifSettings] = useState({ ...NOTIFICATION_DEFAULTS, ...settings })
+  const [notifSettings, setNotifSettings] = useState(NOTIFICATION_DEFAULTS)
+
+  useEffect(() => {
+    if (settings && Object.keys(settings).length > 0) {
+      setNotifSettings((prev) => ({ ...prev, ...settings }))
+    }
+  }, [settings])
 
   const handlePasswordChange = (e) => {
     e.preventDefault()

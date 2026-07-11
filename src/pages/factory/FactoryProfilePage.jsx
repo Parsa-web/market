@@ -1,12 +1,15 @@
 import { Building2, MapPin, Phone, User } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Avatar from '../../components/dashboard/Avatar'
+import { api } from '../../services/marketCore/storage'
 import { useAuth } from '../../hooks/useAuth'
+import { useFactory } from '../../hooks/useFactory'
 
 export default function FactoryProfilePage() {
   const { user, updateUser } = useAuth()
+  const { refresh } = useFactory()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
     company: user?.company || '',
@@ -23,8 +26,20 @@ export default function FactoryProfilePage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     updateUser(form)
+    try {
+      const factories = api.getByRelated('factories', 'userId', user.id)
+      if (factories.length > 0) {
+        api.patch('factories', factories[0].id, {
+          companyName: form.company,
+          industry: form.industry,
+          city: form.city,
+          description: `خطوط تولید: ${form.lines} | تجهیزات: ${form.equipment}`,
+        })
+      }
+      refresh()
+    } catch {}
     setEditing(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)

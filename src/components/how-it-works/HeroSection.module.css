@@ -1,5 +1,5 @@
 .section {
-  padding: 140px 0 100px;
+  padding: 120px 0 100px;
   background: var(--bg);
   overflow: hidden;
   position: relative;
@@ -150,7 +150,7 @@
 
 @media (max-width: 768px) {
   .section {
-    padding: 110px 0 60px;
+    padding: 100px 0 60px;
   }
 
   .title {

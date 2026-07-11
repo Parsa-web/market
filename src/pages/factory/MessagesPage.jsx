@@ -28,12 +28,11 @@ export default function MessagesPage() {
   const messagesEndRef = useRef(null)
   const [chatScrollRoot, setChatScrollRoot] = useState(null)
 
-  useEffect(() => {
-    if (stats.unreadMessages > 0) markAllConversationsRead()
-  }, [])
-
-  const reloadMessages = useCallback((id) => {
-    if (id) setMessages(getMessages(id))
+  const reloadMessages = useCallback(async (id) => {
+    if (id) {
+      const msgs = await getMessages(id)
+      setMessages(msgs)
+    }
   }, [getMessages])
 
   const selectConversation = (id) => {

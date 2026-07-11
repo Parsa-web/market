@@ -31,8 +31,8 @@ export default function ChatBubble({ msg, conversationId, onRead, scrollRoot, ow
       ref={ref}
       className={`dash-chat-bubble${msg.senderId === ownerId ? ' dash-chat-bubble--sent' : ''}${isUnread ? ' dash-chat-bubble--unread' : ''}`}
     >
-      <p>{msg.content}</p>
-      <span className="dash-chat-time">{formatPersianTime(msg.timestamp)}</span>
+      <p>{msg.text}</p>
+      <span className="dash-chat-time">{formatPersianTime(msg.createdAt)}</span>
     </div>
   )
 }

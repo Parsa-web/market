@@ -1,14 +1,27 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import { useFactory } from '../../hooks/useFactory'
+
+const NOTIF_DEFAULTS = {
+  emailNotifications: true,
+  smsNotifications: true,
+  newMessageAlert: true,
+  requestUpdateAlert: true,
+}
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useFactory()
   const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' })
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
-  const [notifSettings, setNotifSettings] = useState(settings)
+  const [notifSettings, setNotifSettings] = useState(NOTIF_DEFAULTS)
+
+  useEffect(() => {
+    if (settings && Object.keys(settings).length > 0) {
+      setNotifSettings((prev) => ({ ...prev, ...settings }))
+    }
+  }, [settings])
 
   const handlePasswordChange = (e) => {
     e.preventDefault()

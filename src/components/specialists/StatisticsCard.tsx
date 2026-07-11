@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import type { ElementType, ReactNode } from 'react'
+import type { ElementType } from 'react'
 import styles from './StatisticsCard.module.css'
 
 interface StatItem {

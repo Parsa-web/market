@@ -4,52 +4,38 @@ import Button from '../../components/common/Button'
 import EmptyState from '../../components/dashboard/EmptyState'
 import Modal from '../../components/dashboard/Modal'
 import Badge from '../../components/dashboard/Badge'
-import { formatPersianDate, getApplicationStatusVariant } from '../../utils/dashboardUtils'
-import { useAuth } from '../../hooks/useAuth'
+import { formatPersianDate, getApplicationStatusVariant, APPLICATION_STATUS_LABELS } from '../../utils/dashboardUtils'
 import { useSpecialist } from '../../hooks/useSpecialist'
 
-const FILTERS = ['همه', 'در انتظار', 'پذیرفته شده', 'رد شده']
+const FILTERS = ['همه', 'pending', 'accepted', 'rejected']
 
 export default function SpecialistApplicationsPage() {
-  const { user } = useAuth()
   const {
     applications,
-    refresh,
-    markApplicationSeen,
   } = useSpecialist()
   const [filter, setFilter] = useState('همه')
   const [viewItem, setViewItem] = useState(null)
   const seenPageRef = useRef(false)
 
-  if (!seenPageRef.current) {
-    seenPageRef.current = true
-    refresh()
+  const filterLabels = {
+    'همه': 'همه',
+    'pending': 'در انتظار',
+    'accepted': 'پذیرفته شده',
+    'rejected': 'رد شده',
   }
 
-  const isAppNew = (app) => {
-    if (app.status === 'در انتظار') return false
-    if (!app.updatedAt) return false
-    const seenAt = app.seenAt || 0
-    return app.updatedAt > seenAt
-  }
-
-  const handleViewDetails = (app) => {
-    setViewItem(app)
-    if (isAppNew(app)) {
-      markApplicationSeen(app.id)
-    }
-  }
+  const appList = applications || []
 
   const filtered = filter === 'همه'
-    ? applications
-    : applications.filter((a) => a.status === filter)
+    ? appList
+    : appList.filter((a) => a.status === filter)
 
-  if (applications.length === 0) {
+  if (appList.length === 0) {
     return (
       <div className="dash-page">
         <EmptyState
           title="درخواستی ارسال نشده"
-          description="از بخش درخواست‌های صنعتی، درخواست همکاری ارسال کنید."
+          description="از بخش نیازهای صنعتی، برای نیازهای صنعتی درخواست همکاری ارسال کنید."
         />
       </div>
     )
@@ -58,7 +44,7 @@ export default function SpecialistApplicationsPage() {
   return (
     <div className="dash-page">
       <p className="dash-page-desc">
-        {applications.length} درخواست همکاری ارسال شده
+        {appList.length} درخواست همکاری ارسال شده
       </p>
 
       <div className="dash-filter-tabs">
@@ -69,7 +55,7 @@ export default function SpecialistApplicationsPage() {
             className={`dash-filter-tab${filter === f ? ' dash-filter-tab--active' : ''}`}
             onClick={() => setFilter(f)}
           >
-            {f}
+            {filterLabels[f]}
           </button>
         ))}
       </div>
@@ -84,17 +70,16 @@ export default function SpecialistApplicationsPage() {
           {filtered.map((app) => (
             <article
               key={app.id}
-              className={`dash-application-card${isAppNew(app) ? ' dash-application-card--new' : ''}`}
+              className="dash-application-card"
             >
               <div className="dash-application-card-top">
                 <div className="dash-application-factory">
-                  <div className="dash-application-factory-name">{app.factoryName}</div>
+                  <div className="dash-application-factory-name">{app.requestTitle}</div>
                 </div>
                 <div className="dash-application-card-badges">
-                  {isAppNew(app) && (
-                    <span className="dash-application-new-badge">جدید</span>
-                  )}
-                  <Badge variant={getApplicationStatusVariant(app.status)}>{app.status}</Badge>
+                  <Badge variant={getApplicationStatusVariant(app.status)}>
+                    {APPLICATION_STATUS_LABELS[app.status] || app.status}
+                  </Badge>
                 </div>
               </div>
 
@@ -106,7 +91,7 @@ export default function SpecialistApplicationsPage() {
 
               <div className="dash-application-footer">
                 <span className="dash-application-date">{formatPersianDate(app.createdAt)}</span>
-                <Button variant="ghost" className="dash-btn-sm" onClick={() => handleViewDetails(app)}>
+                <Button variant="ghost" className="dash-btn-sm" onClick={() => setViewItem(app)}>
                   <Eye size={14} />
                   جزئیات
                 </Button>
@@ -122,18 +107,21 @@ export default function SpecialistApplicationsPage() {
             <div className="dash-application-modal">
               <div className="dash-application-modal-head">
                 <div>
-                  <h3>{viewItem.factoryName}</h3>
-                  <p>{viewItem.requestTitle}</p>
+                  <h3>{viewItem.requestTitle}</h3>
                 </div>
               </div>
               <div className="dash-application-modal-grid">
                 <div className="dash-application-modal-item">
-                  <span>کارخانه</span>
-                  <strong>{viewItem.factoryName}</strong>
+                  <span>نیاز صنعتی</span>
+                  <strong>{viewItem.requestTitle}</strong>
                 </div>
                 <div className="dash-application-modal-item">
-                  <span>درخواست</span>
-                  <strong>{viewItem.requestTitle}</strong>
+                  <span>محل</span>
+                  <strong>{viewItem.requestCity || '—'}</strong>
+                </div>
+                <div className="dash-application-modal-item">
+                  <span>آماده شروع از</span>
+                  <strong>{viewItem.availableStartDate || '—'}</strong>
                 </div>
               </div>
               {viewItem.message && (
@@ -142,9 +130,17 @@ export default function SpecialistApplicationsPage() {
                   <p>{viewItem.message}</p>
                 </div>
               )}
+              {viewItem.additionalDescription && (
+                <div className="dash-application-modal-message">
+                  <span>توضیحات تکمیلی</span>
+                  <p>{viewItem.additionalDescription}</p>
+                </div>
+              )}
               <div className="dash-application-modal-status">
                 <span>وضعیت درخواست</span>
-                <Badge variant={getApplicationStatusVariant(viewItem.status)}>{viewItem.status}</Badge>
+                <Badge variant={getApplicationStatusVariant(viewItem.status)}>
+                  {APPLICATION_STATUS_LABELS[viewItem.status] || viewItem.status}
+                </Badge>
               </div>
             </div>
             <div className="dash-modal-actions">

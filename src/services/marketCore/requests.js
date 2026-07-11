@@ -1,78 +1,51 @@
-import { marketStorage } from './storage'
-import { APPLICATION_STATUS, REQUEST_STATUS } from './constants'
-
-function enrichRequest(request, applications) {
-  const requestApplications = applications.filter((a) => a.requestId === request.id)
-  return {
-    ...request,
-    applicationCount: requestApplications.length,
-    pendingApplicationCount: requestApplications.filter((a) => a.status === APPLICATION_STATUS.PENDING).length,
-  }
-}
+import { api } from './storage'
 
 export const marketRequests = {
-  getAll() {
-    return marketStorage.getRequests()
+  async getAll() {
+    return api.get('industrialRequests')
   },
-
-  getById(id) {
-    const requests = marketStorage.getRequests()
-    return requests.find((r) => r.id === id) || null
+  async getById(id) {
+    return api.getById('industrialRequests', id)
   },
-
-  getByUserId(userId) {
-    const requests = marketStorage.getRequests()
-    return requests.filter((r) => r.userId === userId)
+  async getByUserId(userId) {
+    const factory = await this._getFactoryByUserId(userId)
+    if (!factory) return []
+    return api.getByRelated('industrialRequests', 'factoryId', factory.id)
   },
-
-  getActive() {
-    const requests = marketStorage.getRequests()
-    return requests.filter((r) => r.status === REQUEST_STATUS.ACTIVE)
+  async getActive() {
+    const all = await this.getAll()
+    return all.filter(r => r.status === 'published' || r.status === 'in_progress')
   },
-
-  add(request) {
-    const requests = marketStorage.getRequests()
-    const newRequest = {
-      ...request,
-      id: marketStorage.generateId(),
-      status: REQUEST_STATUS.ACTIVE,
-      createdAt: Date.now(),
-    }
-    requests.unshift(newRequest)
-    marketStorage.setRequests(requests)
-    return newRequest
+  async add(request) {
+    return api.post('industrialRequests', request)
   },
-
-  update(id, updates) {
-    const requests = marketStorage.getRequests()
-    const index = requests.findIndex((r) => r.id === id)
-    if (index === -1) return null
-    requests[index] = { ...requests[index], ...updates }
-    marketStorage.setRequests(requests)
-    return requests[index]
+  async update(id, updates) {
+    return api.patch('industrialRequests', id, updates)
   },
-
-  remove(id) {
-    const requests = marketStorage.getRequests()
-    marketStorage.setRequests(requests.filter((r) => r.id !== id))
+  async remove(id) {
+    return api.del('industrialRequests', id)
   },
-
-  getWithStats(userId) {
-    const requests = marketStorage.getRequests()
-    const applications = marketStorage.getApplications()
-    const userRequests = userId ? requests.filter((r) => r.userId === userId) : requests
-    return userRequests.map((r) => enrichRequest(r, applications))
+  async getWithStats(userId) {
+    const requests = await this.getByUserId(userId)
+    const applications = await api.get('applications')
+    return requests.map(r => ({
+      ...r,
+      applicationCount: applications.filter(a => a.requestId === r.id).length,
+      pendingApplicationCount: applications.filter(a => a.requestId === r.id && a.status === 'pending').length,
+    }))
   },
-
-  getStats(userId) {
-    const requests = marketStorage.getRequests()
-    const userRequests = userId ? requests.filter((r) => r.userId === userId) : requests
+  async getStats(userId) {
+    const requests = await this.getByUserId(userId)
     return {
-      total: userRequests.length,
-      active: userRequests.filter((r) => r.status === REQUEST_STATUS.ACTIVE).length,
-      pending: userRequests.filter((r) => r.status === REQUEST_STATUS.PENDING).length,
-      completed: userRequests.filter((r) => r.status === REQUEST_STATUS.COMPLETED).length,
-      closed: userRequests.filter((r) => r.status === REQUEST_STATUS.CLOSED).length,
+      total: requests.length,
+      active: requests.filter(r => r.status === 'published' || r.status === 'waiting_for_applications' || r.status === 'in_progress').length,
+      pending: requests.filter(r => r.status === 'waiting_for_applications').length,
+      completed: requests.filter(r => r.status === 'completed').length,
+      closed: requests.filter(r => r.status === 'cancelled').length,
     }
+  },
+  async _getFactoryByUserId(userId) {
+    const factories = api.getByRelated('factories', 'userId', userId)
+    return factories[0] || null
   },
 }

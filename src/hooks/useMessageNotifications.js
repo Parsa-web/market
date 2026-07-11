@@ -6,6 +6,7 @@ import { useAuth } from './useAuth'
 export function useMessageNotifications() {
   const { user } = useAuth()
   const [version, setVersion] = useState(0)
+  const [notifications, setNotifications] = useState({ unreadCount: 0, previews: [], enabled: false })
   const refresh = useCallback(() => setVersion((v) => v + 1), [])
 
   useEffect(() => {
@@ -18,41 +19,37 @@ export function useMessageNotifications() {
     }
   }, [refresh])
 
-  const notifications = useMemo(() => {
+  useEffect(() => {
     if (!user?.id) {
-      return { unreadCount: 0, previews: [], enabled: false }
+      setNotifications({ unreadCount: 0, previews: [], enabled: false })
+      return
     }
-
-    if (user.role === 'factory') {
-      marketConversations.getForUser(user.id)
-      const stats = marketStats.getFactoryStats(user.id)
-      const previews = marketConversations.getUnreadPreviews(user.id)
-      return {
-        unreadCount: stats.unreadMessages,
-        previews,
-        enabled: true,
-        userId: user.id,
+    let cancelled = false
+    ;(async () => {
+      if (user.role === 'factory') {
+        const [stats, previews] = await Promise.all([
+          marketStats.getFactoryStats(user.id),
+          marketConversations.getUnreadPreviews(user.id),
+        ])
+        if (!cancelled) {
+          setNotifications({ unreadCount: stats.unreadMessages, previews, enabled: true, userId: user.id })
+        }
+      } else {
+        const [stats, previews] = await Promise.all([
+          marketStats.getSpecialistStats(user.id, user),
+          marketConversations.getUnreadPreviews(user.id),
+        ])
+        if (!cancelled) {
+          setNotifications({ unreadCount: stats.unreadMessages, previews, enabled: true, userId: user.id })
+        }
       }
-    }
-
-    if (user.role === 'specialist') {
-      marketConversations.getForUser(user.id)
-      const stats = marketStats.getSpecialistStats(user.id, user)
-      const previews = marketConversations.getUnreadPreviews(user.id)
-      return {
-        unreadCount: stats.unreadMessages,
-        previews,
-        enabled: true,
-        userId: user.id,
-      }
-    }
-
-    return { unreadCount: 0, previews: [], enabled: false }
+    })()
+    return () => { cancelled = true }
   }, [user, version])
 
-  const markMessageRead = useCallback((conversationId, messageId) => {
+  const markMessageRead = useCallback(async (conversationId, messageId) => {
     if (!user?.id) return false
-    const result = marketMessages.markRead(conversationId, messageId, user.id)
+    const result = await marketMessages.markRead(conversationId, messageId, user.id)
     if (result) emitDashboardDataChange()
     return result
   }, [user])

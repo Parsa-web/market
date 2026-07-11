@@ -11,8 +11,8 @@ export default function OpportunityCard({ opportunity, onView, onApply, compact 
             <Building2 size={18} />
           </div>
           <div>
-            <h3 className="dash-opportunity-factory-name">{opportunity.factoryName}</h3>
-            <span className="dash-opportunity-industry">{opportunity.industry}</span>
+            <h3 className="dash-opportunity-factory-name">{opportunity.factoryName || 'کارخانه صنعتی'}</h3>
+            <span className="dash-opportunity-industry">{opportunity.industry || ''}</span>
           </div>
         </div>
         {opportunity.applied && <Badge variant="completed">درخواست ارسال شده</Badge>}
@@ -22,12 +22,12 @@ export default function OpportunityCard({ opportunity, onView, onApply, compact 
 
       <div className="dash-opportunity-details">
         <div className="dash-opportunity-detail">
-          <span className="dash-opportunity-detail-label">تخصص</span>
-          <span>{opportunity.specialty}</span>
+          <span className="dash-opportunity-detail-label">صنعت</span>
+          <span>{opportunity.industry || opportunity.specialty}</span>
         </div>
         <div className="dash-opportunity-detail">
           <span className="dash-opportunity-detail-label">دستگاه</span>
-          <span>{opportunity.equipment}</span>
+          <span>{opportunity.machine || opportunity.equipment}</span>
         </div>
         <div className="dash-opportunity-detail">
           <span className="dash-opportunity-detail-label">برند</span>
@@ -35,8 +35,8 @@ export default function OpportunityCard({ opportunity, onView, onApply, compact 
         </div>
         {!compact && (
           <div className="dash-opportunity-detail">
-            <span className="dash-opportunity-detail-label">شهر</span>
-            <span><MapPin size={12} /> {opportunity.city}</span>
+            <span className="dash-opportunity-detail-label">محل</span>
+            <span><MapPin size={12} /> {opportunity.location || opportunity.city}</span>
           </div>
         )}
       </div>

@@ -1,143 +1,150 @@
-const STORAGE_PREFIX = 'market_'
-const SPECIALIST_DATA_PREFIX = 'specialist_data_'
-const FACTORY_DATA_PREFIX = 'factory_data_'
-const MIGRATION_PREFIX = 'market_migration_complete_'
+import { SEED_DATA } from './seedData'
 
-const KEYS = {
-  requests: `${STORAGE_PREFIX}requests`,
-  applications: `${STORAGE_PREFIX}applications`,
-  conversations: `${STORAGE_PREFIX}conversations`,
-  messages: `${STORAGE_PREFIX}messages`,
-}
+const COLLECTIONS = [
+  'users', 'factories', 'specialists', 'industrialRequests',
+  'applications', 'projects', 'conversations', 'messages', 'notifications',
+]
 
-function getSpecialistDataKey(userId) {
-  return `${SPECIALIST_DATA_PREFIX}${userId}`
-}
-
-function getFactoryDataKey(userId) {
-  return `${FACTORY_DATA_PREFIX}${userId}`
-}
-
-function getMigrationKey(userId) {
-  return `${MIGRATION_PREFIX}${userId}`
-}
-
-function read(key) {
+function getCollection(name) {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(`mk_${name}`)
     if (raw) return JSON.parse(raw)
-  } catch {
-    /* ignore */
-  }
+  } catch {}
   return null
 }
 
-function write(key, data) {
-  try {
-    localStorage.setItem(key, JSON.stringify(data))
-    return true
-  } catch {
-    return false
+function setCollection(name, data) {
+  localStorage.setItem(`mk_${name}`, JSON.stringify(data))
+}
+
+function ensureLoaded() {
+  for (const key of COLLECTIONS) {
+    if (!getCollection(key)) {
+      setCollection(key, SEED_DATA[key] || [])
+    }
   }
 }
 
-function readRaw(key) {
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
-  }
+const api = {
+  get(collection) {
+    ensureLoaded()
+    return getCollection(collection) || []
+  },
+
+  getById(collection, id) {
+    ensureLoaded()
+    const list = getCollection(collection) || []
+    return list.find(item => item.id === id) || null
+  },
+
+  getByRelated(collection, foreignKey, foreignValue) {
+    ensureLoaded()
+    const list = getCollection(collection) || []
+    const sv = String(foreignValue)
+    return list.filter(item => String(item[foreignKey]) === sv)
+  },
+
+  getByQuery(collection, params) {
+    ensureLoaded()
+    let list = getCollection(collection) || []
+    for (const [key, value] of Object.entries(params)) {
+      const sv = String(value)
+      list = list.filter(item => String(item[key]) === sv)
+    }
+    return list
+  },
+
+  post(collection, data) {
+    ensureLoaded()
+    const list = getCollection(collection) || []
+    const id = list.length > 0 ? Math.max(...list.map(i => i.id)) + 1 : 1
+    const item = { id, ...data }
+    list.push(item)
+    setCollection(collection, list)
+    return item
+  },
+
+  patch(collection, id, data) {
+    ensureLoaded()
+    const list = getCollection(collection) || []
+    const index = list.findIndex(item => item.id === id)
+    if (index === -1) return null
+    list[index] = { ...list[index], ...data }
+    setCollection(collection, list)
+    return list[index]
+  },
+
+  put(collection, id, data) {
+    ensureLoaded()
+    const list = getCollection(collection) || []
+    const index = list.findIndex(item => item.id === id)
+    if (index === -1) return null
+    list[index] = { id, ...data }
+    setCollection(collection, list)
+    return list[index]
+  },
+
+  del(collection, id) {
+    ensureLoaded()
+    const list = getCollection(collection) || []
+    const index = list.findIndex(item => item.id === id)
+    if (index === -1) return null
+    const removed = list.splice(index, 1)[0]
+    setCollection(collection, list)
+    return removed
+  },
 }
 
-function writeRaw(key, value) {
-  try {
-    localStorage.setItem(key, value)
-    return true
-  } catch {
-    return false
-  }
-}
-
-function getCollection(key) {
-  return read(key) || []
-}
-
-function setCollection(key, data) {
-  write(key, data)
-}
-
-function getObject(key) {
-  return read(key) || {}
-}
-
-function setObject(key, data) {
-  write(key, data)
-}
-
-function generateId() {
-  return Date.now() + Math.random()
-}
+export { api }
 
 export const marketStorage = {
-  KEYS,
-  getSpecialistDataKey,
-  getFactoryDataKey,
+  KEYS: {},
+  getSpecialistDataKey: (userId) => `mk_specialist_data_${userId}`,
+  getFactoryDataKey: (userId) => `mk_factory_data_${userId}`,
 
-  getRequests() {
-    return getCollection(KEYS.requests)
+  async getRequests() { return api.get('industrialRequests') },
+  async setRequests(reqs) { setCollection('industrialRequests', reqs) },
+
+  async getApplications() { return api.get('applications') },
+  async setApplications(apps) { setCollection('applications', apps) },
+
+  async getConversations() { return api.get('conversations') },
+  async setConversations(convs) { setCollection('conversations', convs) },
+
+  async getMessages() {
+    const msgs = api.get('messages')
+    const grouped = {}
+    for (const m of msgs) {
+      if (!grouped[m.conversationId]) grouped[m.conversationId] = []
+      grouped[m.conversationId].push(m)
+    }
+    return grouped
+  },
+  async setMessages(msgs) { setCollection('messages', msgs) },
+
+  async getSpecialistData(userId) {
+    const specs = api.getByRelated('specialists', 'userId', userId)
+    return specs[0] || null
+  },
+  async setSpecialistData(userId, data) {
+    const specs = api.getByRelated('specialists', 'userId', userId)
+    if (specs.length > 0) {
+      api.patch('specialists', specs[0].id, data)
+    }
   },
 
-  setRequests(requests) {
-    setCollection(KEYS.requests, requests)
+  async getFactoryData(userId) {
+    const factories = api.getByRelated('factories', 'userId', userId)
+    return factories[0] || null
+  },
+  async setFactoryData(userId, data) {
+    const factories = api.getByRelated('factories', 'userId', userId)
+    if (factories.length > 0) {
+      api.patch('factories', factories[0].id, data)
+    }
   },
 
-  getApplications() {
-    return getCollection(KEYS.applications)
-  },
-
-  setApplications(applications) {
-    setCollection(KEYS.applications, applications)
-  },
-
-  getConversations() {
-    return getCollection(KEYS.conversations)
-  },
-
-  setConversations(conversations) {
-    setCollection(KEYS.conversations, conversations)
-  },
-
-  getMessages() {
-    return getObject(KEYS.messages)
-  },
-
-  setMessages(messages) {
-    setObject(KEYS.messages, messages)
-  },
-
-  getSpecialistData(userId) {
-    return read(getSpecialistDataKey(userId))
-  },
-
-  setSpecialistData(userId, data) {
-    return write(getSpecialistDataKey(userId), data)
-  },
-
-  getFactoryData(userId) {
-    return read(getFactoryDataKey(userId))
-  },
-
-  setFactoryData(userId, data) {
-    return write(getFactoryDataKey(userId), data)
-  },
-
-  isMigrationComplete(userId) {
-    return readRaw(getMigrationKey(userId)) === 'true'
-  },
-
-  markMigrationComplete(userId) {
-    return writeRaw(getMigrationKey(userId), 'true')
-  },
-
-  generateId,
+  isMigrationComplete: () => !!localStorage.getItem('mk_migrated'),
+  markMigrationComplete: () => localStorage.setItem('mk_migrated', '1'),
+  generateId: () => Date.now(),
 }

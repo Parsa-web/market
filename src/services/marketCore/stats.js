@@ -1,98 +1,76 @@
-import { marketStorage } from './storage'
-import { marketRequests } from './requests'
-import { marketApplications } from './applications'
-import { calculateProfileCompletion } from './profile'
-import { APPLICATION_STATUS, DEFAULT_FACTORY_SETTINGS, REQUEST_STATUS } from './constants'
+import { api } from './storage'
 
 export const marketStats = {
-  getFactoryStats(userId) {
-    const requests = marketRequests.getByUserId(userId)
-    const applications = marketApplications.getByFactoryUserId(userId)
-
-    const activeRequests = requests.filter(
-      (r) => r.status === REQUEST_STATUS.ACTIVE || r.status === REQUEST_STATUS.PENDING
-    ).length
-
-    let unreadMessages = 0
-    const messages = marketStorage.getMessages()
-    const conversations = marketStorage.getConversations()
-
-    conversations.forEach((conv) => {
-      if (conv.creatorId === userId || conv.participantId === userId) {
-        const msgs = messages[conv.id] || []
-        unreadMessages += msgs.filter((m) => !m.read && m.senderId !== userId).length
-      }
-    })
-
-    const pendingApplications = applications.filter(
-      (a) => a.status === APPLICATION_STATUS.PENDING
-    ).length
-
-    const profileData = loadUserSettings(userId)
-    const unreadApplications = applications.filter(
-      (a) => (a.updatedAt || a.createdAt || 0) > (profileData.settings?.applicationsSeenAt || 0)
-    ).length
+  async getGlobalStats() {
+    const users = api.get('users')
+    const factories = api.get('factories')
+    const specialists = api.get('specialists')
+    const requests = api.get('industrialRequests')
+    const projects = api.get('projects')
 
     return {
-      activeRequests,
-      unreadMessages,
-      unreadApplications,
-      pendingApplications,
-      totalApplications: applications.length,
+      totalUsers: users.length,
+      totalFactories: factories.length,
+      totalSpecialists: specialists.length,
+      totalRequests: requests.length,
+      totalProjects: projects.length,
+      activeProjects: projects.filter(p => p.status === 'active').length,
+      completedProjects: projects.filter(p => p.status === 'completed').length,
     }
   },
 
-  getSpecialistStats(userId, user) {
-    const applications = marketApplications.getBySpecialistId(userId)
-
-    let unreadMessages = 0
-    const messages = marketStorage.getMessages()
-    const conversations = marketStorage.getConversations()
-
-    conversations.forEach((conv) => {
-      if (conv.creatorId === userId || conv.participantId === userId) {
-        const msgs = messages[conv.id] || []
-        unreadMessages += msgs.filter((m) => !m.read && m.senderId !== userId).length
-      }
-    })
-
-    const profileData = loadUserSettings(userId)
-    const profileCompletion = calculateProfileCompletion(user, profileData)
-
-    const pendingApplications = applications.filter(
-      (a) => a.status === APPLICATION_STATUS.PENDING
-    ).length
-    const unreadApplicationUpdates = applications.filter(
-      (a) => a.status !== APPLICATION_STATUS.PENDING && (a.updatedAt || a.createdAt || 0) > (profileData.settings?.applicationsSeenAt || 0)
-    ).length
+  async getHomeStats() {
+    const users = api.get('users')
+    const factories = api.get('factories')
+    const specialists = api.get('specialists')
+    const requests = api.get('industrialRequests')
+    const projects = api.get('projects')
 
     return {
-      pendingApplications,
-      unreadApplicationUpdates,
-      unreadMessages,
-      profileViews: profileData.profileViews || 0,
-      profileCompletion,
-      totalApplications: applications.length,
+      totalFactories: factories.length,
+      totalSpecialists: specialists.length,
+      activeProjects: projects.filter(p => p.status === 'active').length,
+      openRequests: requests.filter(r => r.status === 'published' || r.status === 'waiting_for_applications').length,
     }
   },
-}
 
-function loadUserSettings(userId) {
-  const specialistData = marketStorage.getSpecialistData(userId)
-  if (specialistData?.settings) {
+  async getFactoryStats(userId) {
+    const factories = api.getByRelated('factories', 'userId', userId)
+    const factory = factories[0]
+    if (!factory) return { totalRequests: 0, activeRequests: 0, totalApplications: 0, totalProjects: 0 }
+    return this.getFactoryDashboardStats(factory.id)
+  },
+
+  async getSpecialistStats(userId) {
+    const specs = api.getByRelated('specialists', 'userId', userId)
+    const specialist = specs[0]
+    const apps = specialist ? api.getByRelated('applications', 'specialistId', specialist.id) : api.getByRelated('applications', 'specialistId', userId)
+    const allAppIds = new Set(apps.map(a => a.requestId))
+    const allRequests = api.get('industrialRequests')
+    const activeRequests = allRequests.filter(r => !allAppIds.has(r.id) && (r.status === 'published' || r.status === 'waiting_for_applications'))
+
     return {
-      settings: specialistData.settings,
-      profileViews: specialistData.profileViews || 0,
+      totalApplications: apps.length,
+      pendingApplications: apps.filter(a => a.status === 'pending').length,
+      acceptedApplications: apps.filter(a => a.status === 'accepted').length,
+      rejectedApplications: apps.filter(a => a.status === 'rejected').length,
+      activeRequests: activeRequests.length,
     }
-  }
+  },
 
-  const factoryData = marketStorage.getFactoryData(userId)
-  if (factoryData?.settings) {
+  async getFactoryDashboardStats(factoryId) {
+    const requests = api.getByRelated('industrialRequests', 'factoryId', factoryId)
+    const applications = api.get('applications')
+    const projects = api.get('projects')
+    const requestIds = requests.map(r => r.id)
+    const appCount = applications.filter(a => requestIds.includes(a.requestId)).length
+    const projectCount = projects.filter(p => requestIds.includes(p.requestId)).length
+
     return {
-      settings: factoryData.settings,
-      profileViews: 0,
+      totalRequests: requests.length,
+      activeRequests: requests.filter(r => r.status === 'published' || r.status === 'waiting_for_applications' || r.status === 'in_progress').length,
+      totalApplications: appCount,
+      totalProjects: projectCount,
     }
-  }
-
-  return { settings: { ...DEFAULT_FACTORY_SETTINGS }, profileViews: 0 }
+  },
 }

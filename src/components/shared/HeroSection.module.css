@@ -1,5 +1,5 @@
 .hero {
-  padding: 140px 0 80px;
+  padding: 120px 0 80px;
   background: var(--bg);
   overflow: hidden;
 }
@@ -35,7 +35,7 @@
 
 @media (max-width: 768px) {
   .hero {
-    padding: 110px 0 60px;
+    padding: 100px 0 60px;
   }
 
   .title {

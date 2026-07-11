@@ -14,10 +14,8 @@ export default function FAQPage() {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('')
 
-  if (loading) return <div className={styles.app}><Header /><div className={styles.loading}>در حال بارگذاری...</div><Footer /></div>
-  if (error || !data) return <div className={styles.app}><Header /><div className={styles.error}>خطا در بارگذاری اطلاعات</div><Footer /></div>
-
   const filteredFaqs = useMemo(() => {
+    if (!data) return []
     let list = data.faqs
     if (activeCategory) {
       list = list.filter((faq: { category: string }) => faq.category === activeCategory)
@@ -29,7 +27,10 @@ export default function FAQPage() {
       )
     }
     return list
-  }, [data.faqs, activeCategory, search])
+  }, [data, activeCategory, search])
+
+  if (loading) return <div className={styles.app}><Header /><div className={styles.loading}>در حال بارگذاری...</div><Footer /></div>
+  if (error || !data) return <div className={styles.app}><Header /><div className={styles.error}>خطا در بارگذاری اطلاعات</div><Footer /></div>
 
   return (
     <div className={styles.app}>

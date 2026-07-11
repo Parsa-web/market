@@ -4,7 +4,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Avatar from './Avatar'
 import DropdownPortal from './DropdownPortal'
 import MessageNotificationBell from './MessageNotificationBell'
-import SearchBar from './SearchBar'
 import { useAuth } from '../../hooks/useAuth'
 import { PAGE_TITLES } from '../../utils/dashboardUtils'
 
@@ -12,7 +11,6 @@ function FactoryHeaderContent({ onMenuToggle }) {
   const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [search, setSearch] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
 
@@ -27,13 +25,6 @@ function FactoryHeaderContent({ onMenuToggle }) {
     navigate('/')
   }
 
-  const handleSearch = (value) => {
-    setSearch(value)
-    if (value.trim()) {
-      navigate(`/factory/requests?q=${encodeURIComponent(value.trim())}`)
-    }
-  }
-
   return (
     <header className="dash-header">
       <div className="dash-header-start">
@@ -41,14 +32,6 @@ function FactoryHeaderContent({ onMenuToggle }) {
           <Menu size={22} />
         </button>
         <h1 className="dash-header-title">{pageTitle}</h1>
-      </div>
-
-      <div className="dash-header-center">
-        <SearchBar
-          value={search}
-          onChange={handleSearch}
-          placeholder="جستجوی درخواست، دستگاه یا برند..."
-        />
       </div>
 
       <div className="dash-header-end">

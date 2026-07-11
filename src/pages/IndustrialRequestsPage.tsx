@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Users, Briefcase, MapPin, Award, FileText } from 'lucide-react'
+import { Users, Briefcase, Award, FileText } from 'lucide-react'
 import Header from '../components/home/Header'
 import Footer from '../components/home/Footer'
 import SearchBar from '../components/requests/SearchBar'
@@ -35,10 +35,10 @@ const ALL_CATEGORIES = [
 ]
 
 const STATS = [
-  { icon: FileText, value: 980, suffix: '+', label: 'درخواست صنعتی' },
-  { icon: Briefcase, value: 320, suffix: '+', label: 'کارخانه' },
-  { icon: Users, value: 450, suffix: '+', label: 'متخصص فعال' },
-  { icon: Award, value: 38, suffix: '', label: 'صنعت' },
+  { icon: FileText, value: 980, suffix: '+', label: 'پروژه تکمیل شده' },
+  { icon: Briefcase, value: 320, suffix: '+', label: 'کارخانه فعال' },
+  { icon: Users, value: 450, suffix: '+', label: 'متخصص مجرب' },
+  { icon: Award, value: 38, suffix: '', label: 'صنعت تحت پوشش' },
 ]
 
 export default function RequestsPage() {
@@ -53,8 +53,6 @@ export default function RequestsPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true)
-    setError(false)
 
     fetch('/data/industrialRequests.json', { signal: controller.signal })
       .then((res) => {

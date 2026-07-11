@@ -1,8 +1,8 @@
-import { marketStorage } from './storage'
-import { CERTIFICATE_STATUS, DEFAULT_SPECIALIST_SETTINGS } from './constants'
+import { api } from './storage'
+import { DEFAULT_SPECIALIST_SETTINGS } from './constants'
 
 function load(userId) {
-  let data = marketStorage.getSpecialistData(userId)
+  let data = api.getByRelated('specialists', 'userId', userId)[0] || null
   if (!data) {
     data = {
       profileViews: 0,
@@ -17,8 +17,10 @@ function load(userId) {
     }
   }
   if (!data.skills) data.skills = []
+  else if (typeof data.skills === 'string') data.skills = data.skills.split(/[،,]/).map(s => s.trim()).filter(Boolean)
   if (!data.machines) data.machines = []
   if (!data.brands) data.brands = []
+  else if (typeof data.brands === 'string') data.brands = data.brands.split(/[،,]/).map(s => s.trim()).filter(Boolean)
   if (!data.certificates) data.certificates = []
   if (!data.portfolio) data.portfolio = []
   data.settings = { ...DEFAULT_SPECIALIST_SETTINGS, ...(data.settings || {}) }
@@ -27,18 +29,18 @@ function load(userId) {
   return data
 }
 
-function save(userId, data) {
-  marketStorage.setSpecialistData(userId, data)
+function getSpecialistByUserId(userId) {
+  return api.getByRelated('specialists', 'userId', userId)[0] || null
 }
 
 export function calculateProfileCompletion(user, data) {
   const checks = [
     !!user?.fullName,
-    !!user?.specialty,
+    !!(user?.specialties?.length > 0),
     !!user?.experience,
     !!user?.city,
-    !!data?.introduction,
-    !!data?.availability,
+    !!data?.introduction || !!user?.bio,
+    !!data?.availability || user?.availabilityStatus,
     (data?.skills?.length || 0) > 0,
     (data?.machines?.length || 0) > 0,
     (data?.brands?.length || 0) > 0,
@@ -63,7 +65,7 @@ export function getMissingProfileItems(data) {
 }
 
 export const marketProfile = {
-  getProfileData(userId, user) {
+  async getProfileData(userId, user) {
     const data = load(userId)
     return {
       ...data,
@@ -72,145 +74,151 @@ export const marketProfile = {
     }
   },
 
-  updateProfileFields(userId, fields) {
-    const data = load(userId)
-    Object.assign(data, fields)
-    save(userId, data)
-    return data
+  async updateProfileFields(userId, fields) {
+    const spec = getSpecialistByUserId(userId)
+    if (spec) {
+      api.patch('specialists', spec.id, fields)
+      return load(userId)
+    }
+    return fields
   },
 
-  incrementProfileViews(userId) {
-    const data = load(userId)
-    data.profileViews += 1
-    save(userId, data)
-    return data.profileViews
+  async incrementProfileViews(userId) {
+    const spec = getSpecialistByUserId(userId)
+    if (spec) {
+      const views = (spec.profileViews || 0) + 1
+      api.patch('specialists', spec.id, { profileViews: views })
+      return views
+    }
+    return 0
   },
 
-  getSkills(userId) {
+  async getSkills(userId) {
     return load(userId).skills
   },
-
-  addSkill(userId, skill) {
-    const data = load(userId)
+  async addSkill(userId, skill) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return []
     const trimmed = skill.trim()
-    if (!trimmed || data.skills.includes(trimmed)) return data.skills
-    data.skills.push(trimmed)
-    save(userId, data)
-    return data.skills
+    const skills = [...(spec.skills || [])]
+    if (!trimmed || skills.includes(trimmed)) return skills
+    skills.push(trimmed)
+    api.patch('specialists', spec.id, { skills })
+    return skills
   },
-
-  updateSkill(userId, index, newSkill) {
-    const data = load(userId)
+  async updateSkill(userId, index, newSkill) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return []
+    const skills = [...(spec.skills || [])]
     const trimmed = newSkill.trim()
-    if (!trimmed || index < 0 || index >= data.skills.length) return data.skills
-    data.skills[index] = trimmed
-    save(userId, data)
-    return data.skills
+    if (!trimmed || index < 0 || index >= skills.length) return skills
+    skills[index] = trimmed
+    api.patch('specialists', spec.id, { skills })
+    return skills
+  },
+  async removeSkill(userId, index) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return []
+    const skills = [...(spec.skills || [])]
+    skills.splice(index, 1)
+    api.patch('specialists', spec.id, { skills })
+    return skills
   },
 
-  removeSkill(userId, index) {
-    const data = load(userId)
-    data.skills.splice(index, 1)
-    save(userId, data)
-    return data.skills
-  },
-
-  getMachines(userId) {
+  async getMachines(userId) {
     return load(userId).machines
   },
-
-  addMachine(userId, machine) {
-    const data = load(userId)
-    const newMachine = { ...machine, id: Date.now() }
-    data.machines.unshift(newMachine)
-    save(userId, data)
-    return newMachine
+  async addMachine(userId, machine) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return null
+    const machines = [...(spec.machines || []), { ...machine, id: Date.now() + Math.random() }]
+    api.patch('specialists', spec.id, { machines })
+    return machines[machines.length - 1]
   },
-
-  updateMachine(userId, id, updates) {
-    const data = load(userId)
-    const index = data.machines.findIndex((m) => m.id === id)
+  async updateMachine(userId, id, updates) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return null
+    const machines = [...(spec.machines || [])]
+    const index = machines.findIndex(m => m.id === id)
     if (index === -1) return null
-    data.machines[index] = { ...data.machines[index], ...updates }
-    save(userId, data)
-    return data.machines[index]
+    machines[index] = { ...machines[index], ...updates }
+    api.patch('specialists', spec.id, { machines })
+    return machines[index]
+  },
+  async removeMachine(userId, id) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return
+    const machines = (spec.machines || []).filter(m => m.id !== id)
+    api.patch('specialists', spec.id, { machines })
   },
 
-  removeMachine(userId, id) {
-    const data = load(userId)
-    data.machines = data.machines.filter((m) => m.id !== id)
-    save(userId, data)
-  },
-
-  getBrands(userId) {
+  async getBrands(userId) {
     return load(userId).brands
   },
-
-  addBrand(userId, brand) {
-    const data = load(userId)
+  async addBrand(userId, brand) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return []
     const trimmed = brand.trim()
-    if (!trimmed || data.brands.includes(trimmed)) return data.brands
-    data.brands.push(trimmed)
-    save(userId, data)
-    return data.brands
+    const brands = [...(spec.brands || [])]
+    if (!trimmed || brands.includes(trimmed)) return brands
+    brands.push(trimmed)
+    api.patch('specialists', spec.id, { brands })
+    return brands
+  },
+  async removeBrand(userId, index) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return []
+    const brands = [...(spec.brands || [])]
+    brands.splice(index, 1)
+    api.patch('specialists', spec.id, { brands })
+    return brands
   },
 
-  removeBrand(userId, index) {
-    const data = load(userId)
-    data.brands.splice(index, 1)
-    save(userId, data)
-    return data.brands
-  },
-
-  getCertificates(userId) {
+  async getCertificates(userId) {
     return load(userId).certificates
   },
-
-  addCertificate(userId, cert) {
-    const data = load(userId)
-    const newCert = {
-      ...cert,
-      id: Date.now(),
-      uploadedAt: Date.now(),
-      status: cert.status || CERTIFICATE_STATUS.UPLOADED,
-    }
-    data.certificates.unshift(newCert)
-    save(userId, data)
+  async addCertificate(userId, cert) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return null
+    const newCert = { ...cert, id: Date.now() + Math.random(), uploadedAt: Date.now(), status: 'آپلود شده' }
+    const certificates = [newCert, ...(spec.certificates || [])]
+    api.patch('specialists', spec.id, { certificates })
     return newCert
   },
-
-  removeCertificate(userId, id) {
-    const data = load(userId)
-    data.certificates = data.certificates.filter((c) => c.id !== id)
-    save(userId, data)
+  async removeCertificate(userId, id) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return
+    const certificates = (spec.certificates || []).filter(c => c.id !== id)
+    api.patch('specialists', spec.id, { certificates })
   },
 
-  getPortfolio(userId) {
+  async getPortfolio(userId) {
     return load(userId).portfolio
   },
-
-  addPortfolioItem(userId, item) {
-    const data = load(userId)
-    const newItem = { ...item, id: Date.now(), date: Date.now() }
-    data.portfolio.unshift(newItem)
-    save(userId, data)
+  async addPortfolioItem(userId, item) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return null
+    const newItem = { ...item, id: Date.now() + Math.random(), date: Date.now() }
+    const portfolio = [newItem, ...(spec.portfolio || [])]
+    api.patch('specialists', spec.id, { portfolio })
     return newItem
   },
-
-  removePortfolioItem(userId, id) {
-    const data = load(userId)
-    data.portfolio = data.portfolio.filter((p) => p.id !== id)
-    save(userId, data)
+  async removePortfolioItem(userId, id) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return
+    const portfolio = (spec.portfolio || []).filter(p => p.id !== id)
+    api.patch('specialists', spec.id, { portfolio })
   },
 
-  getSettings(userId) {
+  async getSettings(userId) {
     return load(userId).settings
   },
-
-  updateSettings(userId, settings) {
-    const data = load(userId)
-    data.settings = { ...data.settings, ...settings }
-    save(userId, data)
-    return data.settings
+  async updateSettings(userId, settings) {
+    const spec = getSpecialistByUserId(userId)
+    if (!spec) return settings
+    const currentSettings = spec.settings || { ...DEFAULT_SPECIALIST_SETTINGS }
+    const updated = { ...currentSettings, ...settings }
+    api.patch('specialists', spec.id, { settings: updated })
+    return updated
   },
 }

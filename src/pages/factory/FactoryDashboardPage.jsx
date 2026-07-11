@@ -5,15 +5,15 @@ import RequestCard from '../../components/dashboard/RequestCard'
 import StatCard from '../../components/dashboard/StatCard'
 import { useAuth } from '../../hooks/useAuth'
 import { useFactory } from '../../hooks/useFactory'
-import { formatBadgeCount } from '../../utils/dashboardUtils'
+import { formatBadgeCount, STATUS_LABELS } from '../../utils/dashboardUtils'
 
 export default function FactoryDashboardPage() {
   const { user } = useAuth()
   const { stats, requests } = useFactory()
   const navigate = useNavigate()
 
-  const recentRequests = requests
-    .filter((r) => r.status === 'فعال' || r.status === 'در انتظار')
+  const recentRequests = (requests || [])
+    .filter((r) => r.status === 'published' || r.status === 'waiting_for_applications' || r.status === 'in_progress')
     .slice(0, 3)
 
   return (
@@ -36,21 +36,21 @@ export default function FactoryDashboardPage() {
         <StatCard
           icon={ClipboardList}
           label="نیازهای فعال"
-          value={formatBadgeCount(stats.activeRequests)}
+          value={formatBadgeCount(stats?.activeRequests || 0)}
           description="تعداد درخواست‌های باز کارخانه"
           to="/factory/requests"
         />
         <StatCard
           icon={Users}
           label="درخواست‌های دریافتی"
-          value={formatBadgeCount(stats.pendingApplications)}
+          value={formatBadgeCount(stats?.pendingApplications || 0)}
           description="درخواست‌های در انتظار بررسی"
           to="/factory/applications"
         />
         <StatCard
           icon={MessageSquare}
           label="پیام‌های جدید"
-          value={formatBadgeCount(stats.unreadMessages)}
+          value={formatBadgeCount(stats?.unreadMessages || 0)}
           description="پیام‌های خوانده نشده"
           to="/factory/messages"
         />
@@ -62,6 +62,9 @@ export default function FactoryDashboardPage() {
           <Link to="/factory/requests" className="dash-section-link">مشاهده همه</Link>
         </div>
         <div className="dash-requests-list">
+          {recentRequests.length === 0 && (
+            <p className="dash-empty-text">هنوز درخواستی ثبت نکرده‌اید.</p>
+          )}
           {recentRequests.map((request) => (
             <RequestCard
               key={request.id}

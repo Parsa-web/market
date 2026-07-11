@@ -21,7 +21,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthLayout variant="login">
+    <AuthLayout>
       <LoginForm />
     </AuthLayout>
   )

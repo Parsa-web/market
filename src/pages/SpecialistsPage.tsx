@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Users, Briefcase, MapPin, Award } from 'lucide-react'
+import { Users, Briefcase, Award, FileText } from 'lucide-react'
 import Header from '../components/home/Header'
 import Footer from '../components/home/Footer'
 import SpecialistCard from '../components/specialists/SpecialistCard'
@@ -18,26 +18,26 @@ import styles from './SpecialistsPage.module.css'
 
 const ALL_CATEGORIES = [
   'PLC',
-  'برق صنعتی',
   'اتوماسیون',
+  'برق صنعتی',
+  'الکترونیک صنعتی',
+  'مکانیک',
   'هیدرولیک',
   'پنوماتیک',
-  'مکانیک',
-  'خط تولید',
-  'CNC',
-  'کمپرسور',
-  'الکترونیک صنعتی',
-  'کوره صنعتی',
-  'رباتیک',
-  'ابزار دقیق',
+  'سرامیک',
   'بسته‌بندی',
+  'فولاد',
+  'غذایی',
+  'نساجی',
+  'معدن',
+  'نفت و گاز',
 ]
 
 const STATS = [
-  { icon: Users, value: 450, suffix: '+', label: 'متخصص فعال' },
-  { icon: Briefcase, value: 38, suffix: '', label: 'تخصص صنعتی' },
-  { icon: MapPin, value: 64, suffix: '', label: 'شهر' },
-  { icon: Award, value: 980, suffix: '+', label: 'پروژه تکمیل شده' },
+  { icon: FileText, value: 980, suffix: '+', label: 'پروژه تکمیل شده' },
+  { icon: Briefcase, value: 320, suffix: '+', label: 'کارخانه فعال' },
+  { icon: Users, value: 450, suffix: '+', label: 'متخصص مجرب' },
+  { icon: Award, value: 38, suffix: '', label: 'صنعت تحت پوشش' },
 ]
 
 function matchesExperience(years: number, range: string): boolean {
@@ -63,8 +63,6 @@ export default function SpecialistsPage() {
 
   useEffect(() => {
     const controller = new AbortController()
-    setLoading(true)
-    setError(false)
 
     fetch('/data/specialists.json', { signal: controller.signal })
       .then((res) => {

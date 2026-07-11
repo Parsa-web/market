@@ -28,13 +28,19 @@ export default function SpecialistProfilePage() {
 
   const [editing, setEditing] = useState(false)
   const [saved, setSaved] = useState(false)
+  const profileName = profileData.fullName || user?.fullName
+  const profileSpecialty = profileData.specialties?.[0] || user?.specialty || ''
+  const profileExperience = profileData.experience || user?.experience || ''
+  const profileCity = profileData.city || user?.city || ''
+  const profileAvailability = profileData.availability || profileData.availabilityStatus || 'آماده همکاری'
+
   const [form, setForm] = useState({
-    fullName: user?.fullName || '',
-    specialty: user?.specialty || '',
-    experience: user?.experience || '',
-    city: user?.city || '',
+    fullName: profileName,
+    specialty: profileSpecialty,
+    experience: profileExperience,
+    city: profileCity,
     introduction: profileData.introduction || '',
-    availability: profileData.availability || 'آماده همکاری',
+    availability: profileAvailability,
   })
 
   const [newSkill, setNewSkill] = useState('')
@@ -106,7 +112,7 @@ export default function SpecialistProfilePage() {
     setBrandError('')
   }
 
-  const initials = user?.fullName?.split(' ').map((w) => w[0]).join('').slice(0, 2)
+  const initials = profileName?.split(' ').map((w) => w[0]).join('').slice(0, 2)
 
   return (
     <div className="dash-page">
@@ -114,21 +120,21 @@ export default function SpecialistProfilePage() {
 
       <div className="dash-profile-completion-banner">
         <ProgressCard
-          percentage={stats.profileCompletion}
+          percentage={profileData.profileCompletion}
           missingItems={profileData.missingItems}
         />
       </div>
 
       <div className="dash-profile-card">
         <div className="dash-profile-header">
-          <Avatar name={user?.fullName} initials={initials} size="xl" />
+          <Avatar name={profileName} initials={initials} size="xl" />
           <div className="dash-profile-header-info">
-            <h2>{user?.fullName}</h2>
-            <p>{user?.specialty}</p>
+            <h2>{profileName}</h2>
+            <p>{profileSpecialty}</p>
             <div className="dash-profile-meta">
               <MapPin size={14} />
-              <span>{user?.city}</span>
-              <Badge variant="active">{profileData.availability}</Badge>
+              <span>{profileCity}</span>
+              <Badge variant="active">{profileAvailability}</Badge>
             </div>
           </div>
           {!editing && (
@@ -145,8 +151,8 @@ export default function SpecialistProfilePage() {
               <Input label="شهر" value={form.city} onChange={(e) => update('city', e.target.value)} icon={MapPin} />
               <Input label="وضعیت همکاری" value={form.availability} onChange={(e) => update('availability', e.target.value)} icon={Handshake} fullWidth />
             </div>
-            <div className="dash-form-field">
-              <label className="auth-label">معرفی حرفه‌ای</label>
+            <div className="auth-field rg-full">
+              <label className="auth-field-label">معرفی حرفه‌ای</label>
               <textarea
                 className="dash-textarea"
                 rows={4}
@@ -239,14 +245,14 @@ export default function SpecialistProfilePage() {
             <div className="dash-profile-section">
               <h3>اطلاعات حرفه‌ای</h3>
               <div className="dash-profile-contact">
-                <p><Briefcase size={16} /> {user?.experience} سال تجربه</p>
-                <p><User size={16} /> {user?.specialty}</p>
-                <p><MapPin size={16} /> {user?.city}</p>
+                <p><Briefcase size={16} /> {profileExperience} سال تجربه</p>
+                <p><User size={16} /> {profileSpecialty}</p>
+                <p><MapPin size={16} /> {profileCity}</p>
               </div>
             </div>
             <div className="dash-profile-section">
               <h3>وضعیت همکاری</h3>
-              <Badge variant="active">{profileData.availability}</Badge>
+              <Badge variant="active">{profileAvailability}</Badge>
             </div>
             {skills.length > 0 && (
               <div className="dash-profile-section">

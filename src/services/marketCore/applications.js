@@ -1,97 +1,173 @@
-import { marketStorage } from './storage'
-import { marketRequests } from './requests'
-import { APPLICATION_STATUS } from './constants'
+import { api } from './storage'
 
-function enrichApplication(application) {
-  const request = marketRequests.getById(application.requestId)
+async function enrichApplication(app) {
+  const request = api.getById('industrialRequests', app.requestId)
+  let specialistName = ''
+  let factoryName = ''
+  const spec = api.getById('specialists', app.specialistId)
+  specialistName = spec?.fullName || ''
+  if (request) {
+    const factory = api.getById('factories', request.factoryId)
+    factoryName = factory?.companyName || ''
+  }
   return {
-    ...application,
+    ...app,
+    factoryName: factoryName || 'کارخانه',
+    specialistName: specialistName || `متخصص #${app.specialistId}`,
     requestTitle: request?.title || 'درخواست حذف شده',
-    requestSpecialty: request?.specialty || '',
-    requestEquipment: request?.equipment || '',
+    requestSpecialty: request?.industry || '',
+    requestEquipment: request?.machine || '',
     requestBrand: request?.brand || '',
-    requestCity: request?.city || '',
+    requestCity: request?.location || '',
   }
 }
 
+function createNotification(userId, type, title, description) {
+  api.post('notifications', {
+    userId,
+    type,
+    title,
+    description,
+    read: false,
+    createdAt: new Date().toISOString(),
+  })
+}
+
 export const marketApplications = {
-  getAll() {
-    return marketStorage.getApplications()
+  async getAll() {
+    return api.get('applications')
   },
-
-  getById(id) {
-    const applications = marketStorage.getApplications()
-    return applications.find((a) => a.id === id) || null
+  async getById(id) {
+    return api.getById('applications', id)
   },
-
-  getByRequestId(requestId) {
-    const applications = marketStorage.getApplications()
-    return applications.filter((a) => a.requestId === requestId)
+  async getByRequestId(requestId) {
+    return api.getByRelated('applications', 'requestId', requestId)
   },
-
-  getBySpecialistId(specialistId) {
-    const applications = marketStorage.getApplications()
-    return applications.filter((a) => a.specialistId === specialistId)
+  async getBySpecialistId(specialistId) {
+    return api.getByRelated('applications', 'specialistId', specialistId)
   },
-
-  getByFactoryUserId(userId) {
-    const requests = marketRequests.getByUserId(userId)
-    const requestIds = new Set(requests.map((r) => r.id))
-    const applications = marketStorage.getApplications()
-    return applications.filter((a) => requestIds.has(a.requestId))
+  async getByFactoryUserId(userId) {
+    const factories = api.getByRelated('factories', 'userId', userId)
+    if (factories.length === 0) return []
+    return this.getByFactoryId(factories[0].id)
   },
-
-  add(application) {
-    const applications = marketStorage.getApplications()
-    const newApplication = {
-      ...application,
-      id: marketStorage.generateId(),
-      status: APPLICATION_STATUS.PENDING,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+  async getByFactoryId(factoryId) {
+    const all = await this.getAll()
+    const requests = api.getByRelated('industrialRequests', 'factoryId', factoryId)
+    const requestIds = requests.map(r => r.id)
+    return all.filter(a => requestIds.includes(a.requestId))
+  },
+  async add(application) {
+    const app = api.post('applications', { ...application, status: 'pending', createdAt: new Date().toISOString() })
+    const request = api.getById('industrialRequests', application.requestId)
+    const factories = api.getByRelated('factories', 'id', request.factoryId)
+    const factory = factories[0]
+    if (factory) {
+      createNotification(
+        factory.userId,
+        'new_application',
+        'درخواست همکاری جدید',
+        `یک متخصص برای درخواست «${request.title}» اعلام آمادگی کرده است.`,
+      )
     }
-    applications.unshift(newApplication)
-    marketStorage.setApplications(applications)
-    return newApplication
-  },
-
-  updateStatus(id, status) {
-    const applications = marketStorage.getApplications()
-    const app = applications.find((a) => a.id === id)
-    if (!app) return null
-    app.status = status
-    app.updatedAt = Date.now()
-    marketStorage.setApplications(applications)
     return app
   },
-
-  hasSpecialistApplied(specialistId, requestId) {
-    const applications = marketStorage.getApplications()
-    return applications.some(
-      (a) => a.specialistId === specialistId && a.requestId === requestId
-    )
+  async updateStatus(id, status) {
+    if (status === 'accepted') return this.accept(id)
+    if (status === 'rejected') return this.reject(id)
+    return api.patch('applications', id, { status })
   },
-
-  getForFactory(userId) {
-    const applications = this.getByFactoryUserId(userId)
-    return applications.map(enrichApplication)
+  async hasSpecialistApplied(specialistId, requestId) {
+    const apps = await this.getBySpecialistId(specialistId)
+    return apps.some(a => a.requestId === requestId)
   },
-
-  getForSpecialist(specialistId) {
-    const applications = this.getBySpecialistId(specialistId)
-    return applications.map(enrichApplication)
+  async getForFactory(userId) {
+    const apps = await this.getByFactoryUserId(userId)
+    const enriched = []
+    for (const app of apps) {
+      enriched.push(await enrichApplication(app))
+    }
+    return enriched
   },
-
-  getStats(userId, role) {
-    const applications = role === 'factory'
-      ? this.getByFactoryUserId(userId)
-      : this.getBySpecialistId(userId)
-
+  async getForSpecialist(specialistId) {
+    const apps = await this.getBySpecialistId(specialistId)
+    const enriched = []
+    for (const app of apps) {
+      enriched.push(await enrichApplication(app))
+    }
+    return enriched
+  },
+  async accept(id) {
+    const app = api.getById('applications', id)
+    if (!app) return null
+    const updated = api.patch('applications', id, { status: 'accepted' })
+    const request = api.getById('industrialRequests', app.requestId)
+    api.patch('industrialRequests', app.requestId, { status: 'in_progress' })
+    const project = api.post('projects', {
+      requestId: app.requestId,
+      applicationId: id,
+      factoryId: request.factoryId,
+      specialistId: app.specialistId,
+      status: 'active',
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: null,
+      createdAt: new Date().toISOString(),
+    })
+    api.post('conversations', {
+      projectId: project.id,
+      factoryId: request.factoryId,
+      specialistId: app.specialistId,
+      createdAt: new Date().toISOString(),
+    })
+    const factories = api.getByRelated('factories', 'id', request.factoryId)
+    const factory = factories[0]
+    const specialist = api.getById('specialists', app.specialistId)
+    if (specialist) {
+      createNotification(
+        specialist.userId,
+        'application_accepted',
+        'درخواست شما پذیرفته شد',
+        `درخواست شما برای «${request.title}» توسط ${factory?.companyName || 'کارخانه'} پذیرفته شد.`,
+      )
+      createNotification(
+        specialist.userId,
+        'project_started',
+        'پروژه جدید شروع شد',
+        `پروژه «${request.title}» شروع شد. لطفاً برای هماهنگی به بخش پیام‌ها مراجعه کنید.`,
+      )
+    }
+    if (factory) {
+      createNotification(
+        factory.userId,
+        'project_started',
+        'پروژه جدید شروع شد',
+        `پروژه «${request.title}» با همکاری ${specialist?.fullName || 'متخصص'} شروع شد.`,
+      )
+    }
+    return updated
+  },
+  async reject(id) {
+    const app = api.getById('applications', id)
+    if (!app) return null
+    const updated = api.patch('applications', id, { status: 'rejected' })
+    const request = api.getById('industrialRequests', app.requestId)
+    const specialist = api.getById('specialists', app.specialistId)
+    if (specialist) {
+      createNotification(
+        specialist.userId,
+        'application_rejected',
+        'درخواست شما رد شد',
+        `متأسفیم، درخواست شما برای «${request.title}» رد شده است.`,
+      )
+    }
+    return updated
+  },
+  async getStats(factoryId) {
+    const apps = await this.getByFactoryId(factoryId)
     return {
-      total: applications.length,
-      pending: applications.filter((a) => a.status === APPLICATION_STATUS.PENDING).length,
-      accepted: applications.filter((a) => a.status === APPLICATION_STATUS.ACCEPTED).length,
-      rejected: applications.filter((a) => a.status === APPLICATION_STATUS.REJECTED).length,
+      total: apps.length,
+      pending: apps.filter(a => a.status === 'pending').length,
+      accepted: apps.filter(a => a.status === 'accepted').length,
     }
   },
 }

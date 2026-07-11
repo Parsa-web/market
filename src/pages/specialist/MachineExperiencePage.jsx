@@ -95,8 +95,8 @@ export default function MachineExperiencePage() {
           <Input label="برند" icon={Tags} value={form.brand} onChange={(e) => setForm((p) => ({ ...p, brand: e.target.value }))} required />
           <Input label="صنعت" icon={Factory} value={form.industry} onChange={(e) => setForm((p) => ({ ...p, industry: e.target.value }))} />
           <Input label="سال تجربه" icon={Briefcase} value={form.years} onChange={(e) => setForm((p) => ({ ...p, years: e.target.value }))} />
-          <div className="dash-form-field">
-            <label className="auth-label">توضیحات</label>
+          <div className="auth-field rg-full">
+            <label className="auth-field-label">توضیحات</label>
             <textarea
               className="dash-textarea"
               rows={3}

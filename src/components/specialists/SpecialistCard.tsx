@@ -1,8 +1,6 @@
 import { motion } from 'framer-motion'
-import { MapPin, Briefcase, CheckCircle } from 'lucide-react'
+import { MapPin, Star, ChevronLeft, Award } from 'lucide-react'
 import type { Specialist } from './types'
-import Rating from './Rating'
-import AvailabilityBadge from './AvailabilityBadge'
 import styles from './SpecialistCard.module.css'
 
 interface SpecialistCardProps {
@@ -28,17 +26,19 @@ export default function SpecialistCard({ specialist, onSelect }: SpecialistCardP
       tabIndex={0}
       aria-label={`پروفایل ${fullName}`}
     >
+      <div className={styles.accent} />
+
       <div className={styles.header}>
         <div className={styles.avatar}>{initials}</div>
         <div className={styles.headerInfo}>
           <div className={styles.name}>{fullName}</div>
           <div className={styles.role}>{specialist.jobTitle}</div>
+          <span className={styles.industry}>{specialist.industry}</span>
         </div>
-      </div>
-
-      <div className={styles.badges}>
-        <AvailabilityBadge status={specialist.availability} />
-        <Rating value={specialist.rating} />
+        <div className={styles.rating}>
+          <Star size={11} className={styles.starIcon} />
+          <span>{specialist.rating}</span>
+        </div>
       </div>
 
       <div className={styles.skills}>
@@ -50,32 +50,17 @@ export default function SpecialistCard({ specialist, onSelect }: SpecialistCardP
         )}
       </div>
 
-      <div className={styles.meta}>
-        <div className={styles.metaItem}>
-          <MapPin size={13} className={styles.metaIcon} />
-          {specialist.city}
-        </div>
-        <div className={styles.metaItem}>
-          <Briefcase size={13} className={styles.metaIcon} />
-          {specialist.experienceYears} سال تجربه
-        </div>
-      </div>
-
       <div className={styles.footer}>
-        <div className={styles.progress}>
-          <CheckCircle size={13} className={styles.metaIcon} />
-          <span>تکمیل پروفایل</span>
-          <div className={styles.progressBar}>
-            <div className={styles.progressFill} style={{ width: `${specialist.profileCompletion}%` }} />
-          </div>
-          <span>{specialist.profileCompletion}%</span>
+        <div className={styles.meta}>
+          <MapPin size={12} className={styles.metaIcon} />
+          {specialist.city}
+          <span className={styles.metaDot} />
+          <Award size={12} className={styles.metaIcon} />
+          {specialist.projectsCompleted} پروژه
         </div>
-        <button
-          type="button"
-          className={styles.viewBtn}
-          onClick={(e) => { e.stopPropagation(); onSelect(specialist.id) }}
-        >
-          مشاهده پروفایل
+        <button type="button" className={styles.viewBtn} onClick={(e) => { e.stopPropagation(); onSelect(specialist.id) }}>
+          مشاهده
+          <ChevronLeft size={14} />
         </button>
       </div>
     </motion.div>

@@ -1,4 +1,4 @@
-import { Briefcase, CheckCircle } from 'lucide-react'
+import { Briefcase, CheckCircle, Eye } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Button from '../common/Button'
 import { specialists } from '../../data/homeData'
@@ -38,8 +38,9 @@ export default function SpecialistsSection() {
                 <Briefcase size={13} />
                 <span>{specialist.experience}</span>
               </div>
-              <Button variant="primary" fullWidth onClick={() => navigate('/register?role=factory')}>
-                درخواست همکاری
+              <Button variant="primary" fullWidth onClick={() => navigate('/specialists')}>
+                <Eye size={16} />
+                مشاهده پروفایل
               </Button>
             </div>
           ))}

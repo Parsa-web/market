@@ -149,10 +149,10 @@ export default function ProfileModal({ specialist, onClose }: ProfileModalProps)
 
               <div className={styles.cta}>
                 <p className={styles.ctaText}>
-                  برای همکاری با {specialist.firstName} {specialist.lastName}، ابتدا در صنعت‌نت ثبت‌نام کنید.
+                  برای مشاهده نیازهای صنعتی و ارسال درخواست همکاری، در صنعت‌نت ثبت‌نام کنید.
                 </p>
-                <Link to="/register?role=factory" className={styles.ctaBtn}>
-                  ثبت‌نام کارخانه
+                <Link to="/register" className={styles.ctaBtn}>
+                  ثبت‌نام در صنعت‌نت
                 </Link>
               </div>
             </div>

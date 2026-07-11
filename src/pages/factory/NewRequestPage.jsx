@@ -1,13 +1,11 @@
-import { Upload } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
-import { getSpecialtyExample, getSpecialtyPlaceholder, specialtySelectOptions } from '../../data/specialties'
+import { specialtySelectOptions } from '../../data/specialties'
 import { useFactory } from '../../hooks/useFactory'
 
-const COLLABORATION_TYPES = ['حضوری', 'دورکاری', 'ترکیبی']
-const URGENCY_OPTIONS = ['عادی', 'فوری', 'بحرانی']
+const PRIORITY_OPTIONS = ['پایین', 'متوسط', 'بالا', 'فوری']
 
 export default function NewRequestPage() {
   const { id } = useParams()
@@ -17,33 +15,38 @@ export default function NewRequestPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [errors, setErrors] = useState({})
-  const [files, setFiles] = useState({ image: null, pdf: null })
   const [form, setForm] = useState({
     title: '',
     description: '',
-    specialty: '',
-    equipment: '',
+    industry: '',
+    machine: '',
     brand: '',
-    collaborationType: 'حضوری',
-    city: '',
-    experienceRequired: '',
-    urgency: 'عادی',
+    skillsRequired: '',
+    experienceLevel: '',
+    location: '',
+    budget: '',
+    requiredTime: '',
+    applicationDeadline: '',
+    priority: 'متوسط',
   })
 
   useEffect(() => {
-    if (isEdit && requests.length > 0) {
+    if (isEdit && requests && requests.length > 0) {
       const existing = requests.find((r) => r.id === Number(id))
       if (existing) {
         setForm({
           title: existing.title || '',
           description: existing.description || '',
-          specialty: existing.specialty || '',
-          equipment: existing.equipment || '',
+          industry: existing.industry || '',
+          machine: existing.machine || '',
           brand: existing.brand || '',
-          collaborationType: existing.collaborationType || 'حضوری',
-          city: existing.city || '',
-          experienceRequired: existing.experienceRequired || '',
-          urgency: existing.urgency || 'عادی',
+          skillsRequired: Array.isArray(existing.skillsRequired) ? existing.skillsRequired.join('، ') : (existing.skillsRequired || ''),
+          experienceLevel: existing.experienceLevel || '',
+          location: existing.location || '',
+          budget: existing.budget || '',
+          requiredTime: existing.requiredTime || '',
+          applicationDeadline: existing.applicationDeadline || '',
+          priority: existing.priority || 'متوسط',
         })
       }
     }
@@ -58,10 +61,10 @@ export default function NewRequestPage() {
     const next = {}
     if (!form.title.trim()) next.title = 'عنوان نیاز الزامی است'
     if (!form.description.trim()) next.description = 'توضیحات الزامی است'
-    if (!form.specialty) next.specialty = 'تخصص الزامی است'
-    if (!form.equipment.trim()) next.equipment = 'دستگاه الزامی است'
+    if (!form.industry) next.industry = 'صنعت الزامی است'
+    if (!form.machine.trim()) next.machine = 'دستگاه الزامی است'
     if (!form.brand.trim()) next.brand = 'برند الزامی است'
-    if (!form.city.trim()) next.city = 'شهر الزامی است'
+    if (!form.location.trim()) next.location = 'محل الزامی است'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -72,16 +75,26 @@ export default function NewRequestPage() {
     setLoading(true)
     await new Promise((r) => setTimeout(r, 600))
 
+    const requestData = {
+      title: form.title,
+      description: form.description,
+      industry: form.industry,
+      machine: form.machine,
+      brand: form.brand,
+      skillsRequired: form.skillsRequired.split('،').map(s => s.trim()).filter(Boolean),
+      experienceLevel: form.experienceLevel,
+      location: form.location,
+      budget: form.budget,
+      requiredTime: form.requiredTime,
+      applicationDeadline: form.applicationDeadline,
+      priority: form.priority,
+      status: 'published',
+    }
+
     if (isEdit) {
-      updateRequest(Number(id), form)
+      await updateRequest(Number(id), requestData)
     } else {
-      addRequest({
-        ...form,
-        attachments: [
-          files.image?.name,
-          files.pdf?.name,
-        ].filter(Boolean),
-      })
+      await addRequest(requestData)
     }
 
     setLoading(false)
@@ -94,8 +107,8 @@ export default function NewRequestPage() {
       <div className="dash-page">
         <div className="dash-success-state">
           <div className="dash-success-icon">✓</div>
-          <h2>{isEdit ? 'درخواست با موفقیت ویرایش شد' : 'درخواست با موفقیت ثبت شد'}</h2>
-          <p>در حال انتقال به لیست درخواست‌ها...</p>
+          <h2>{isEdit ? 'نیاز صنعتی با موفقیت ویرایش شد' : 'نیاز صنعتی با موفقیت ثبت شد'}</h2>
+          <p>در حال انتقال به لیست نیازها...</p>
         </div>
       </div>
     )
@@ -104,11 +117,9 @@ export default function NewRequestPage() {
   return (
     <div className="dash-page">
       <div className="dash-form-card">
-        <h2 className="dash-form-title">{isEdit ? 'ویرایش نیاز فنی' : 'ثبت نیاز فنی جدید'}</h2>
+        <h2 className="dash-form-title">{isEdit ? 'ویرایش نیاز صنعتی' : 'ثبت نیاز صنعتی جدید'}</h2>
         <p className="dash-form-subtitle">
-          {isEdit
-            ? 'اطلاعات نیاز فنی را ویرایش کنید.'
-            : 'اطلاعات نیاز فنی کارخانه را وارد کنید تا متخصص مناسب پیدا شود.'}
+          اطلاعات نیاز فنی کارخانه را تکمیل کنید تا متخصصان بتوانند درخواست همکاری ارسال کنند.
         </p>
 
         <form onSubmit={handleSubmit} className="dash-form">
@@ -123,12 +134,12 @@ export default function NewRequestPage() {
           />
 
           <div className="auth-field rg-full">
-            <label className="auth-field-label">توضیحات مشکل <span className="rg-required">*</span></label>
+            <label className="auth-field-label">توضیحات کامل <span className="rg-required">*</span></label>
             <textarea
               className={`dash-textarea${errors.description ? ' has-error' : ''}`}
               value={form.description}
               onChange={(e) => update('description', e.target.value)}
-              placeholder="شرح کامل مشکل و شرایط کار..."
+              placeholder="شرح کامل مشکل، شرایط کار و انتظارات..."
               rows={4}
             />
             {errors.description && <p className="auth-error-text">{errors.description}</p>}
@@ -136,32 +147,27 @@ export default function NewRequestPage() {
 
           <div className="dash-form-grid">
             <div className="auth-field">
-              <label className="auth-field-label">تخصص مورد نیاز <span className="rg-required">*</span></label>
+              <label className="auth-field-label">صنعت <span className="rg-required">*</span></label>
               <select
-                className={`dash-select${errors.specialty ? ' has-error' : ''}`}
-                value={form.specialty}
-                onChange={(e) => update('specialty', e.target.value)}
+                className={`dash-select${errors.industry ? ' has-error' : ''}`}
+                value={form.industry}
+                onChange={(e) => update('industry', e.target.value)}
               >
                 <option value="">انتخاب کنید</option>
                 {specialtySelectOptions.slice(1).map((item) => (
                   <option key={item.value} value={item.value}>{item.label}</option>
                 ))}
               </select>
-              <p className="dash-field-hint">
-                {form.specialty
-                  ? `نمونه مهارت: ${getSpecialtyExample(form.specialty)}`
-                  : getSpecialtyPlaceholder()}
-              </p>
-              {errors.specialty && <p className="auth-error-text">{errors.specialty}</p>}
+              {errors.industry && <p className="auth-error-text">{errors.industry}</p>}
             </div>
 
             <Input
               label="دستگاه"
               required
-              value={form.equipment}
-              error={errors.equipment}
-              onChange={(e) => update('equipment', e.target.value)}
-              placeholder="نام دستگاه"
+              value={form.machine}
+              error={errors.machine}
+              onChange={(e) => update('machine', e.target.value)}
+              placeholder="نام دستگاه صنعتی"
             />
 
             <Input
@@ -170,86 +176,82 @@ export default function NewRequestPage() {
               value={form.brand}
               error={errors.brand}
               onChange={(e) => update('brand', e.target.value)}
-              placeholder="مثال: Siemens"
+              placeholder="مثال: Siemens, ABB"
+            />
+
+            <Input
+              label="محل انجام کار"
+              required
+              value={form.location}
+              error={errors.location}
+              onChange={(e) => update('location', e.target.value)}
+              placeholder="شهر یا استان"
+            />
+
+            <Input
+              label="بودجه پیشنهادی"
+              value={form.budget}
+              onChange={(e) => update('budget', e.target.value)}
+              placeholder="مثال: ۵۰ میلیون تومان"
+            />
+
+            <Input
+              label="مدت زمان مورد نیاز"
+              value={form.requiredTime}
+              onChange={(e) => update('requiredTime', e.target.value)}
+              placeholder="مثال: ۲ هفته"
+            />
+
+            <Input
+              label="مهلت دریافت درخواست"
+              type="date"
+              value={form.applicationDeadline}
+              onChange={(e) => update('applicationDeadline', e.target.value)}
             />
 
             <div className="auth-field">
-              <label className="auth-field-label">نوع همکاری</label>
+              <label className="auth-field-label">سابقه مورد نیاز</label>
               <select
                 className="dash-select"
-                value={form.collaborationType}
-                onChange={(e) => update('collaborationType', e.target.value)}
+                value={form.experienceLevel}
+                onChange={(e) => update('experienceLevel', e.target.value)}
               >
-                {COLLABORATION_TYPES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
+                <option value="">انتخاب کنید</option>
+                <option value="کمتر از ۳ سال">کمتر از ۳ سال</option>
+                <option value="بیش از ۳ سال">بیش از ۳ سال</option>
+                <option value="بیش از ۵ سال">بیش از ۵ سال</option>
+                <option value="بیش از ۸ سال">بیش از ۸ سال</option>
               </select>
             </div>
 
-            <Input
-              label="شهر"
-              required
-              value={form.city}
-              error={errors.city}
-              onChange={(e) => update('city', e.target.value)}
-              placeholder="شهر محل کار"
-            />
-
-            <Input
-              label="سابقه مورد نیاز"
-              value={form.experienceRequired}
-              onChange={(e) => update('experienceRequired', e.target.value)}
-              placeholder="مثال: ۵ سال"
-            />
-
             <div className="auth-field">
-              <label className="auth-field-label">فوریت</label>
+              <label className="auth-field-label">اولویت</label>
               <select
                 className="dash-select"
-                value={form.urgency}
-                onChange={(e) => update('urgency', e.target.value)}
+                value={form.priority}
+                onChange={(e) => update('priority', e.target.value)}
               >
-                {URGENCY_OPTIONS.map((u) => (
-                  <option key={u} value={u}>{u}</option>
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p} value={p}>{p}</option>
                 ))}
               </select>
             </div>
           </div>
 
-          {!isEdit && (
-            <div className="dash-upload-section">
-              <label className="auth-field-label">پیوست‌ها</label>
-              <div className="dash-upload-grid">
-                <label className="dash-upload-box">
-                  <Upload size={20} />
-                  <span>{files.image ? files.image.name : 'آپلود تصویر'}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => setFiles((f) => ({ ...f, image: e.target.files?.[0] || null }))}
-                  />
-                </label>
-                <label className="dash-upload-box">
-                  <Upload size={20} />
-                  <span>{files.pdf ? files.pdf.name : 'آپلود PDF'}</span>
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    hidden
-                    onChange={(e) => setFiles((f) => ({ ...f, pdf: e.target.files?.[0] || null }))}
-                  />
-                </label>
-              </div>
-            </div>
-          )}
+          <Input
+            label="مهارت‌های مورد نیاز"
+            value={form.skillsRequired}
+            onChange={(e) => update('skillsRequired', e.target.value)}
+            placeholder="PLC، هیدرولیک، اینورتر (با کاما جدا کنید)"
+            fullWidth
+          />
 
           <div className="dash-form-actions">
             <Button type="button" variant="outline" onClick={() => navigate('/factory/requests')}>
               انصراف
             </Button>
             <Button type="submit" variant="primary" loading={loading} loadingText={isEdit ? 'در حال ذخیره...' : 'در حال ثبت...'}>
-              {isEdit ? 'ذخیره تغییرات' : 'ثبت درخواست'}
+              {isEdit ? 'ذخیره تغییرات' : 'ثبت نیاز صنعتی'}
             </Button>
           </div>
         </form>

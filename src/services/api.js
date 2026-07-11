@@ -1,74 +1,78 @@
-const USERS_KEY = 'auth_users'
-const SESSION_KEY = 'auth_session'
-
-function getUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY)) || []
-  } catch {
-    return []
-  }
-}
-
-function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
-}
-
-function saveSession(user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(user))
-}
-
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY)
-}
+import { authService } from './authService'
 
 export const authApi = {
   getSession: () => {
-    try {
-      return JSON.parse(localStorage.getItem(SESSION_KEY)) || null
-    } catch {
-      return null
-    }
+    return authService.getSession()
   },
 
-  login: (credentials) => {
-    const users = getUsers()
-    const user = users.find(
-      (u) => (u.identifier === credentials.identifier && u.password === credentials.password)
-    )
-    if (!user) {
-      throw new Error('شماره موبایل یا رمز عبور اشتباه است')
+  login: async (credentials) => {
+    const result = await authService.login(credentials.identifier, credentials.password)
+    const profile = result.profile || {}
+    const session = {
+      id: result.id,
+      email: result.email,
+      role: result.role,
+      ...profile,
+      company: profile.companyName || result.email,
+      fullName: profile.fullName || result.email,
+      specialty: Array.isArray(profile.specialties) ? profile.specialties[0] || '' : '',
+      identifier: result.email,
     }
-    const { password, ...safe } = user
-    saveSession(safe)
-    return safe
+    sessionStorage.setItem('auth_session', JSON.stringify(session))
+    return session
   },
 
-  register: (data) => {
-    const users = getUsers()
-    const exists = users.some((u) => u.identifier === data.identifier)
-    if (exists) {
-      throw new Error('این شماره موبایل قبلاً ثبت شده است')
+  register: async (data) => {
+    const parseCSV = (v) => (typeof v === 'string' ? v.split(/[،,]/).map(s => s.trim()).filter(Boolean) : [])
+
+    const specialty = data.specialty || ''
+    const newUser = await authService.register({
+      email: data.identifier,
+      password: data.password,
+      role: data.role,
+      companyName: data.companyName,
+      industry: data.industry,
+      province: data.province || data.city,
+      city: data.city,
+      fullName: data.fullName,
+      specialties: specialty ? [specialty] : [],
+      skills: parseCSV(data.skills),
+      machines: [],
+      brands: parseCSV(data.brands),
+      experience: data.experience ? parseInt(data.experience) : 0,
+      description: data.description || '',
+    })
+    const session = {
+      id: newUser.id,
+      email: data.identifier,
+      role: data.role,
+      identifier: data.identifier,
+      companyName: data.companyName,
+      company: data.companyName,
+      fullName: data.fullName,
+      manager: data.manager,
+      industry: data.industry,
+      city: data.city,
+      phone: data.phone,
+      specialty,
+      specialties: specialty ? [specialty] : [],
+      experience: data.experience || '',
+      availabilityStatus: 'available',
+      bio: '',
     }
-    const newUser = { id: Date.now(), ...data }
-    users.push(newUser)
-    saveUsers(users)
-    const { password, ...safe } = newUser
-    saveSession(safe)
-    return safe
+    sessionStorage.setItem('auth_session', JSON.stringify(session))
+    return session
   },
 
   logout: () => {
-    clearSession()
+    authService.logout()
   },
 
   updateUser: (userId, updates) => {
-    const users = getUsers()
-    const index = users.findIndex((u) => u.id === userId)
-    if (index === -1) return null
-    users[index] = { ...users[index], ...updates }
-    saveUsers(users)
-    const { password, ...safe } = users[index]
-    saveSession(safe)
-    return safe
+    const session = authService.getSession()
+    if (!session) return null
+    const updated = { ...session, ...updates }
+    sessionStorage.setItem('auth_session', JSON.stringify(updated))
+    return updated
   },
 }

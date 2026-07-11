@@ -1,4 +1,4 @@
-import { createContext, createElement, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import {
   marketRequests,
   marketApplications,
@@ -14,58 +14,63 @@ const FactoryContext = createContext(null)
 export function FactoryProvider({ children }) {
   const { user } = useAuth()
   const [version, setVersion] = useState(0)
+  const [data, setData] = useState(null)
+
+  const userId = user?.id
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    ;(async () => {
+      const [stats, requests, applications, conversations, unreadPreviews] = await Promise.all([
+        marketStats.getFactoryStats(userId),
+        marketRequests.getByUserId(userId),
+        marketApplications.getForFactory(userId),
+        marketConversations.getForUser(userId),
+        marketConversations.getUnreadPreviews(userId),
+      ])
+      if (cancelled) return
+      setData({
+        stats,
+        requests,
+        applications,
+        conversations,
+        settings: {
+          emailNotifications: true,
+          smsNotifications: true,
+          newMessageAlert: true,
+          requestUpdateAlert: true,
+        },
+        unreadPreviews,
+      })
+    })()
+    return () => { cancelled = true }
+  }, [userId, version])
 
   const refresh = useCallback(() => {
     setVersion((v) => v + 1)
     emitDashboardDataChange()
   }, [])
 
-  const userId = user?.id
-
-  const data = useMemo(() => {
-    if (!userId) return null
-
-    const stats = marketStats.getFactoryStats(userId)
-    const requests = marketRequests.getByUserId(userId)
-    const applications = marketApplications.getForFactory(userId)
-    const conversations = marketConversations.getForUser(userId)
-    const settings = {
-      emailNotifications: true,
-      smsNotifications: true,
-      newMessageAlert: true,
-      requestUpdateAlert: true,
-    }
-    const unreadPreviews = marketConversations.getUnreadPreviews(userId)
-
-    return {
-      stats,
-      requests,
-      applications,
-      conversations,
-      settings,
-      unreadPreviews,
-    }
-  }, [userId, version])
-
-  const addRequest = useCallback((requestData) => {
-    const result = marketRequests.add({ ...requestData, userId })
+  const addRequest = useCallback(async (requestData) => {
+    const result = await marketRequests.add({ ...requestData, userId })
     refresh()
     return result
   }, [userId, refresh])
 
-  const updateRequest = useCallback((id, updates) => {
-    const result = marketRequests.update(id, updates)
+  const updateRequest = useCallback(async (id, updates) => {
+    const result = await marketRequests.update(id, updates)
     refresh()
     return result
   }, [refresh])
 
-  const deleteRequest = useCallback((id) => {
-    marketRequests.remove(id)
+  const deleteRequest = useCallback(async (id) => {
+    await marketRequests.remove(id)
     refresh()
   }, [refresh])
 
-  const updateApplicationStatus = useCallback((applicationId, status) => {
-    const result = marketApplications.updateStatus(applicationId, status)
+  const updateApplicationStatus = useCallback(async (applicationId, status) => {
+    const result = await marketApplications.updateStatus(applicationId, status)
     refresh()
     return result
   }, [refresh])
@@ -74,27 +79,27 @@ export function FactoryProvider({ children }) {
     refresh()
   }, [refresh])
 
-  const getMessages = useCallback((conversationId) => {
+  const getMessages = useCallback(async (conversationId) => {
     return marketMessages.getByConversationId(conversationId)
   }, [])
 
-  const markConversationRead = useCallback((conversationId) => {
-    marketConversations.markRead(conversationId, userId)
+  const markConversationRead = useCallback(async (conversationId) => {
+    await marketConversations.markRead(conversationId, userId)
     refresh()
   }, [userId, refresh])
 
-  const markAllConversationsRead = useCallback(() => {
-    marketConversations.markAllRead(userId)
+  const markAllConversationsRead = useCallback(async () => {
+    await marketConversations.markAllRead(userId)
     refresh()
   }, [userId, refresh])
 
-  const markMessageRead = useCallback((conversationId, messageId) => {
-    marketMessages.markRead(conversationId, messageId, userId)
+  const markMessageRead = useCallback(async (conversationId, messageId) => {
+    await marketMessages.markRead(conversationId, messageId, userId)
     refresh()
   }, [userId, refresh])
 
-  const sendMessage = useCallback((conversationId, content) => {
-    const result = marketMessages.add(conversationId, userId, user?.company || 'کارخانه', content)
+  const sendMessage = useCallback(async (conversationId, content) => {
+    const result = await marketMessages.add(conversationId, userId, user?.company || 'کارخانه', content)
     refresh()
     return result
   }, [userId, user, refresh])
@@ -107,7 +112,7 @@ export function FactoryProvider({ children }) {
   const value = useMemo(() => {
     if (!userId) return null
     return {
-      ...data,
+      ...(data || { stats: {}, requests: [], applications: [], conversations: [], settings: {}, unreadPreviews: [] }),
       refresh,
       addRequest,
       updateRequest,
@@ -122,20 +127,10 @@ export function FactoryProvider({ children }) {
       updateSettings,
     }
   }, [
-    userId,
-    data,
-    refresh,
-    addRequest,
-    updateRequest,
-    deleteRequest,
-    updateApplicationStatus,
-    markApplicationsSeen,
-    getMessages,
-    markConversationRead,
-    markAllConversationsRead,
-    markMessageRead,
-    sendMessage,
-    updateSettings,
+    userId, data, refresh, addRequest, updateRequest, deleteRequest,
+    updateApplicationStatus, markApplicationsSeen, getMessages,
+    markConversationRead, markAllConversationsRead, markMessageRead,
+    sendMessage, updateSettings,
   ])
 
   return createElement(FactoryContext.Provider, { value }, children)

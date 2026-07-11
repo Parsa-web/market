@@ -181,7 +181,7 @@ export default function PortfolioPage() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="افزودن پروژه">
         <form className="dash-form" onSubmit={handleSave}>
           <Input label="عنوان پروژه" icon={FolderOpen} value={form.title} onChange={(e) => update('title', e.target.value)} fullWidth required />
-          <div className="dash-form-field">
+          <div className="auth-field rg-full">
             <label className="auth-field-label">توضیحات</label>
             <textarea
               className="dash-textarea"

@@ -14,14 +14,13 @@ import {
   Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Button from '../common/Button'
 import Input from '../common/Input'
 import { getSpecialtyPlaceholder, specialtyTitles } from '../../data/specialties'
 import { useAuth } from '../../hooks/useAuth'
 
 function FactoryForm({ onBack, onSuccess }) {
-  const navigate = useNavigate()
   const { register } = useAuth()
   const [data, setData] = useState({
     company: '',
@@ -74,7 +73,7 @@ function FactoryForm({ onBack, onSuccess }) {
     setIsSubmitting(true)
     try {
       await register({ ...data, identifier: data.phone, role: 'factory' })
-      navigate('/factory')
+      onSuccess()
     } catch (err) {
       setErrors({ phone: err.message })
     } finally {
@@ -186,7 +185,6 @@ function FactoryForm({ onBack, onSuccess }) {
 }
 
 function SpecialistForm({ onBack, onSuccess }) {
-  const navigate = useNavigate()
   const { register } = useAuth()
   const [data, setData] = useState({
     fullName: '',
@@ -240,7 +238,7 @@ function SpecialistForm({ onBack, onSuccess }) {
     setIsSubmitting(true)
     try {
       await register({ ...data, identifier: data.phone, role: 'specialist' })
-      navigate('/specialist')
+      onSuccess()
     } catch (err) {
       setErrors({ phone: err.message })
     } finally {
