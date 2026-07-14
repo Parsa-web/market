@@ -13,9 +13,12 @@ import RequestModal from '../components/requests/RequestModal'
 import ApplicationModal from '../components/requests/ApplicationModal'
 import EmptyState from '../components/requests/EmptyState'
 import LoadingSkeleton from '../components/requests/LoadingSkeleton'
+import type { IndustrialRequest as ApiRequest } from '../types'
 import type { IndustrialRequest, RequestFilters } from '../components/requests/types'
 import heroImage from '../assets/images/darkhast.png'
 import styles from './IndustrialRequestsPage.module.css'
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 const ALL_CATEGORIES = [
   'PLC',
@@ -33,6 +36,40 @@ const ALL_CATEGORIES = [
   'معدن',
   'نفت و گاز',
 ]
+
+const URGENCY_MAP: Record<string, 'high' | 'medium' | 'low'> = { 'فوری': 'high', 'بالا': 'high', 'متوسط': 'medium', 'پایین': 'low' }
+
+const STATUS_MAP: Record<string, 'open' | 'closed' | 'in_progress'> = {
+  'published': 'open',
+  'waiting_for_applications': 'open',
+  'in_progress': 'in_progress',
+  'draft': 'closed',
+  'completed': 'closed',
+  'cancelled': 'closed',
+}
+
+function toRequestCard(req: ApiRequest, factoryMap: Record<string, string>): IndustrialRequest {
+  return {
+    id: Number(req.id),
+    title: req.title,
+    factoryName: factoryMap[String(req.factoryId)] || 'کارخانه صنعتی',
+    industry: req.industry || '',
+    machine: req.machine || '',
+    brand: req.brand || '',
+    city: req.location || '',
+    province: req.location || '',
+    requiredSkills: req.skillsRequired || [],
+    description: req.description || '',
+    budget: req.budget || '',
+    deadline: req.applicationDeadline || '',
+    urgency: URGENCY_MAP[req.priority] || 'medium',
+    status: STATUS_MAP[req.status] || 'closed',
+    applicationsCount: 0,
+    estimatedDuration: req.requiredTime || '',
+    attachments: [],
+    createdAt: req.createdAt || '',
+  }
+}
 
 const STATS = [
   { icon: FileText, value: 980, suffix: '+', label: 'پروژه تکمیل شده' },
@@ -54,22 +91,34 @@ export default function RequestsPage() {
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch('/data/industrialRequests.json', { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load')
-        return res.json()
-      })
-      .then((data: IndustrialRequest[]) => {
-        setRequests(data)
+    async function load() {
+      try {
+        const [requestsRes, factoriesRes] = await Promise.all([
+          fetch(`${API_BASE}/industrialRequests`, { signal: controller.signal }),
+          fetch(`${API_BASE}/factories`, { signal: controller.signal }),
+        ])
+
+        if (!requestsRes.ok) throw new Error('Failed to load requests')
+        if (!factoriesRes.ok) throw new Error('Failed to load factories')
+
+        const apiRequests: ApiRequest[] = await requestsRes.json()
+        const factories: { id: string; companyName: string }[] = await factoriesRes.json()
+
+        const factoryMap: Record<string, string> = {}
+        factories.forEach((f) => { factoryMap[String(f.id)] = f.companyName })
+
+        const mapped = apiRequests.map((r) => toRequestCard(r, factoryMap))
+        setRequests(mapped)
         setLoading(false)
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
           setError(true)
           setLoading(false)
         }
-      })
+      }
+    }
 
+    load()
     return () => controller.abort()
   }, [])
 
@@ -154,7 +203,7 @@ export default function RequestsPage() {
       <Header />
 
       {/* Hero */}
-      <section className={styles.hero} aria-label="درخواست‌های صنعتی">
+      <section className={styles.hero} aria-label="نیازهای صنعتی">
         <div className={styles.heroLayout}>
           <motion.div
             className={styles.heroText}
@@ -162,7 +211,7 @@ export default function RequestsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h1 className={styles.heroTitle}>درخواست‌های صنعتی</h1>
+            <h1 className={styles.heroTitle}>نیازهای صنعتی</h1>
             <p className={styles.heroSub}>
               درخواست‌های واقعی تعمیر و نگهداری صنعتی منتشر شده توسط کارخانه‌ها در صنایع مختلف را مرور کنید.
             </p>
@@ -173,7 +222,7 @@ export default function RequestsPage() {
               </Link>
               <Link to="/register?role=factory" className={styles.btnOutline}>
                 <FileText size={18} />
-                ثبت درخواست صنعتی
+                ثبت نیاز صنعتی
               </Link>
             </div>
           </motion.div>
@@ -250,7 +299,7 @@ export default function RequestsPage() {
           ) : (
             <>
               <p className={styles.count}>
-                <strong>{filtered.length}</strong> درخواست صنعتی پیدا شد
+                <strong>{filtered.length}</strong> نیاز صنعتی پیدا شد
               </p>
               {filtered.length === 0 ? (
                 <EmptyState onReset={handleReset} />

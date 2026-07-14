@@ -13,7 +13,7 @@ export default function EmptyState({ onReset }: EmptyStateProps) {
       </div>
       <h3 className={styles.title}>درخواستی یافت نشد</h3>
       <p className={styles.desc}>
-        درخواست صنعتی با فیلترهای انتخاب شده پیدا نشد. لطفاً فیلترها را تغییر دهید یا دوباره جستجو کنید.
+        نیاز صنعتی با فیلترهای انتخاب شده پیدا نشد. لطفاً فیلترها را تغییر دهید یا دوباره جستجو کنید.
       </p>
       <button type="button" className={styles.resetBtn} onClick={onReset}>
         حذف همه فیلترها

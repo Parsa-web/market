@@ -15,7 +15,7 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
         placeholder="جستجو بر اساس دستگاه، برند، مهارت، صنعت، شهر..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        aria-label="جستجوی درخواست‌های صنعتی"
+        aria-label="جستجوی نیازهای صنعتی"
       />
       <Search size={18} className={styles.icon} />
       {value && (

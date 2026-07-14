@@ -5,14 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server.js db.json",
+    "dev:full": "concurrently -k \"npm run dev\" \"npm run server\"",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "echo no backend"
+    "preview": "vite preview"
   },
   "dependencies": {
+    "concurrently": "^10.0.3",
     "framer-motion": "^12.42.2",
-
+    "json-server": "^1.0.0-beta.15",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

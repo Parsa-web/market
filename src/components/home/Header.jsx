@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { label: 'خانه', path: '/' },
   { label: 'چطور کار می‌کند', path: '/how-it-works' },
   { label: 'متخصص‌ها', path: '/specialists' },
-  { label: 'درخواست‌های صنعتی', path: '/requests' },
+  { label: 'نیازهای صنعتی', path: '/requests' },
 ]
 
 const DROPDOWN_ITEMS = [
@@ -112,6 +112,15 @@ export default function Header() {
       setProfileStyle(getDropdownStyle(profileBtnRef, 200, 12))
     }
   }, [profileOpen])
+
+  useEffect(() => {
+    if (moreOpen || profileOpen || menuOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [moreOpen, profileOpen, menuOpen])
 
   const handleLogout = () => {
     logout()

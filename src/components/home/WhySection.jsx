@@ -2,7 +2,7 @@ import { whyFeatures } from '../../data/homeData'
 
 export default function WhySection() {
   return (
-    <section className="section section-alt" id="why">
+    <section className="section" id="why">
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">چرا این پلتفرم؟</h2>

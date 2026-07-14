@@ -1,35 +1,17 @@
-import { Eye, KeyRound, MessageSquare, Send, RefreshCw } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { AlertTriangle, Trash2, KeyRound, Save } from 'lucide-react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
-import { useSpecialist } from '../../hooks/useSpecialist'
-
-const NOTIFICATION_DEFAULTS = {
-  applicationAlert: true,
-  newMessageAlert: true,
-  profileViewAlert: true,
-  requestUpdateAlert: true,
-}
-
-const NOTIFICATION_GROUPS = [
-  { key: 'applicationAlert', icon: Send, label: 'وضعیت درخواست', desc: 'تغییر وضعیت درخواست‌های ارسال‌شده (پذیرفته/رد شده).' },
-  { key: 'newMessageAlert', icon: MessageSquare, label: 'پیام جدید', desc: 'برای پیام‌های جدید کارخانه‌ها و مکالمات فعال.' },
-  { key: 'profileViewAlert', icon: Eye, label: 'بازدید پروفایل', desc: 'وقتی پروفایل تخصصی شما توسط کارخانه‌ها دیده می‌شود.' },
-  { key: 'requestUpdateAlert', icon: RefreshCw, label: 'به‌روزرسانی درخواست', desc: 'تغییر وضعیت فرصت‌ها و درخواست‌های صنعتی.' },
-]
+import Modal from '../../components/dashboard/Modal'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function SpecialistSettingsPage() {
-  const { settings, updateSettings } = useSpecialist()
-  const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' })
+  const { deleteAccount, logout } = useAuth()
+  const [passwordForm, setPasswordForm] = useState({ newPass: '', confirm: '' })
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
-  const [notifSettings, setNotifSettings] = useState(NOTIFICATION_DEFAULTS)
-
-  useEffect(() => {
-    if (settings && Object.keys(settings).length > 0) {
-      setNotifSettings((prev) => ({ ...prev, ...settings }))
-    }
-  }, [settings])
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const handlePasswordChange = (e) => {
     e.preventDefault()
@@ -43,14 +25,19 @@ export default function SpecialistSettingsPage() {
     }
     setPasswordError('')
     setPasswordSuccess(true)
-    setPasswordForm({ current: '', newPass: '', confirm: '' })
+    setPasswordForm({ newPass: '', confirm: '' })
     setTimeout(() => setPasswordSuccess(false), 3000)
   }
 
-  const handleNotifChange = (key) => {
-    const updated = { ...notifSettings, [key]: !notifSettings[key] }
-    setNotifSettings(updated)
-    updateSettings(updated)
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      await deleteAccount()
+      logout()
+    } catch {
+      setDeleting(false)
+      setDeleteConfirm(false)
+    }
   }
 
   return (
@@ -60,71 +47,49 @@ export default function SpecialistSettingsPage() {
       <div className="dash-settings-grid">
         <section className="dash-settings-card">
           <h2 className="dash-settings-title">تغییر رمز عبور</h2>
+          <p className="dash-settings-desc">رمز عبور جدید خود را وارد کنید. حداقل ۶ کاراکتر.</p>
           <form onSubmit={handlePasswordChange} className="dash-form">
-            <Input
-              label="رمز عبور فعلی"
-              icon={KeyRound}
-              type="password"
-              value={passwordForm.current}
-              onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
-              fullWidth
-            />
-            <Input
-              label="رمز عبور جدید"
-              icon={KeyRound}
-              type="password"
-              value={passwordForm.newPass}
-              onChange={(e) => setPasswordForm((p) => ({ ...p, newPass: e.target.value }))}
-              fullWidth
-            />
-            <Input
-              label="تکرار رمز عبور"
-              icon={KeyRound}
-              type="password"
-              value={passwordForm.confirm}
-              onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
-              fullWidth
-            />
+            <Input label="رمز عبور جدید" type="password" icon={KeyRound} value={passwordForm.newPass} onChange={(e) => setPasswordForm((p) => ({ ...p, newPass: e.target.value }))} fullWidth placeholder="حداقل ۶ کاراکتر" />
+            <Input label="تکرار رمز عبور" type="password" icon={KeyRound} value={passwordForm.confirm} onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))} fullWidth placeholder="تکرار رمز عبور جدید" />
             {passwordError && <p className="auth-error-text">{passwordError}</p>}
-            <Button type="submit" variant="primary">ذخیره رمز عبور</Button>
+            <Button type="submit" variant="primary"><Save size={15} /> ذخیره رمز عبور</Button>
           </form>
         </section>
 
-        <section className="dash-settings-card dash-settings-card--wide">
-          <h2 className="dash-settings-title">اعلان‌های کاری</h2>
-          <div className="dash-toggle-list">
-            {NOTIFICATION_GROUPS.map((item) => {
-              const Icon = item.icon
-
-              return (
-                <label key={item.key} className="dash-toggle-item">
-                  <span className="dash-toggle-icon"><Icon size={18} /></span>
-                  <span className="dash-toggle-copy">
-                    <span className="dash-toggle-label">{item.label}</span>
-                    <span className="dash-toggle-desc">{item.desc}</span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={!!notifSettings[item.key]}
-                    onChange={() => handleNotifChange(item.key)}
-                    className="dash-toggle-input"
-                  />
-                </label>
-              )
-            })}
+        <section className="dash-settings-card dash-settings-card--danger">
+          <div className="dash-settings-danger-inner">
+            <div className="dash-settings-danger-icon">
+              <Trash2 size={20} />
+            </div>
+            <div>
+              <h2 className="dash-settings-title">حذف حساب کاربری</h2>
+              <p className="dash-settings-desc">
+                با حذف حساب، تمام اطلاعات شما شامل درخواست‌ها، پیام‌ها و اطلاعات پروفایل به‌طور دائمی حذف خواهد شد. این عمل قابل بازگشت نیست.
+              </p>
+              <button type="button" className="dash-btn-danger-full" onClick={() => setDeleteConfirm(true)}>
+                <Trash2 size={15} />
+                حذف حساب کاربری
+              </button>
+            </div>
           </div>
-        </section>
-
-        <section className="dash-settings-card">
-          <h2 className="dash-settings-title">امنیت</h2>
-          <div className="dash-security-info">
-            <p>آخرین ورود: امروز</p>
-            <p>دستگاه فعال: مرورگر وب</p>
-            <p>احراز هویت دو مرحله‌ای: غیرفعال</p>
-          </div>
-          <Button variant="outline">فعال‌سازی احراز هویت دو مرحله‌ای</Button>
         </section>
       </div>
+
+      <Modal open={deleteConfirm} onClose={() => !deleting && setDeleteConfirm(false)} title="حذف حساب کاربری">
+        <div className="dash-delete-account">
+          <div className="dash-delete-account-icon">
+            <AlertTriangle size={28} />
+          </div>
+          <h3>آیا از حذف حساب خود اطمینان دارید؟</h3>
+          <p>تمام اطلاعات شما شامل درخواست‌ها، پیام‌ها و اطلاعات پروفایل برای همیشه حذف خواهند شد.</p>
+          <div className="dash-modal-actions">
+            <Button variant="primary" className="dash-btn-danger" onClick={handleDeleteAccount} disabled={deleting}>
+              {deleting ? 'در حال حذف...' : 'بله، حذف کن'}
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteConfirm(false)} disabled={deleting}>انصراف</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

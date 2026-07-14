@@ -1,27 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { AlertTriangle, Trash2, KeyRound, Save } from 'lucide-react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
-import { useFactory } from '../../hooks/useFactory'
-
-const NOTIF_DEFAULTS = {
-  emailNotifications: true,
-  smsNotifications: true,
-  newMessageAlert: true,
-  requestUpdateAlert: true,
-}
+import Modal from '../../components/dashboard/Modal'
+import { useAuth } from '../../hooks/useAuth'
 
 export default function SettingsPage() {
-  const { settings, updateSettings } = useFactory()
-  const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' })
+  const { deleteAccount, logout } = useAuth()
+  const [passwordForm, setPasswordForm] = useState({ newPass: '', confirm: '' })
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
-  const [notifSettings, setNotifSettings] = useState(NOTIF_DEFAULTS)
-
-  useEffect(() => {
-    if (settings && Object.keys(settings).length > 0) {
-      setNotifSettings((prev) => ({ ...prev, ...settings }))
-    }
-  }, [settings])
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const handlePasswordChange = (e) => {
     e.preventDefault()
@@ -35,22 +25,20 @@ export default function SettingsPage() {
     }
     setPasswordError('')
     setPasswordSuccess(true)
-    setPasswordForm({ current: '', newPass: '', confirm: '' })
+    setPasswordForm({ newPass: '', confirm: '' })
     setTimeout(() => setPasswordSuccess(false), 3000)
   }
 
-  const handleNotifChange = (key) => {
-    const updated = { ...notifSettings, [key]: !notifSettings[key] }
-    setNotifSettings(updated)
-    updateSettings(updated)
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      await deleteAccount()
+      logout()
+    } catch {
+      setDeleting(false)
+      setDeleteConfirm(false)
+    }
   }
-
-  const toggles = [
-    { key: 'emailNotifications', label: 'اعلان ایمیل', desc: 'دریافت اعلان‌ها از طریق ایمیل' },
-    { key: 'smsNotifications', label: 'اعلان پیامک', desc: 'دریافت اعلان‌ها از طریق پیامک' },
-    { key: 'newMessageAlert', label: 'پیام جدید', desc: 'اطلاع‌رسانی هنگام دریافت پیام جدید' },
-    { key: 'requestUpdateAlert', label: 'به‌روزرسانی درخواست', desc: 'اطلاع‌رسانی تغییرات درخواست‌ها' },
-  ]
 
   return (
     <div className="dash-page">
@@ -59,69 +47,49 @@ export default function SettingsPage() {
       <div className="dash-settings-grid">
         <section className="dash-settings-card">
           <h2 className="dash-settings-title">تغییر رمز عبور</h2>
+          <p className="dash-settings-desc">رمز عبور جدید خود را وارد کنید. حداقل ۶ کاراکتر.</p>
           <form onSubmit={handlePasswordChange} className="dash-form">
-            <Input
-              label="رمز عبور فعلی"
-              type="password"
-              value={passwordForm.current}
-              onChange={(e) => setPasswordForm((p) => ({ ...p, current: e.target.value }))}
-              fullWidth
-            />
-            <Input
-              label="رمز عبور جدید"
-              type="password"
-              value={passwordForm.newPass}
-              onChange={(e) => setPasswordForm((p) => ({ ...p, newPass: e.target.value }))}
-              fullWidth
-            />
-            <Input
-              label="تکرار رمز عبور"
-              type="password"
-              value={passwordForm.confirm}
-              onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))}
-              fullWidth
-            />
+            <Input label="رمز عبور جدید" type="password" icon={KeyRound} value={passwordForm.newPass} onChange={(e) => setPasswordForm((p) => ({ ...p, newPass: e.target.value }))} fullWidth placeholder="حداقل ۶ کاراکتر" />
+            <Input label="تکرار رمز عبور" type="password" icon={KeyRound} value={passwordForm.confirm} onChange={(e) => setPasswordForm((p) => ({ ...p, confirm: e.target.value }))} fullWidth placeholder="تکرار رمز عبور جدید" />
             {passwordError && <p className="auth-error-text">{passwordError}</p>}
-            <Button type="submit" variant="primary">ذخیره رمز عبور</Button>
+            <Button type="submit" variant="primary"><Save size={15} /> ذخیره رمز عبور</Button>
           </form>
         </section>
 
-        <section className="dash-settings-card">
-          <h2 className="dash-settings-title">تنظیمات اعلان</h2>
-          <div className="dash-toggle-list">
-            {toggles.map((item) => (
-              <label key={item.key} className="dash-toggle-item">
-                <div>
-                  <span className="dash-toggle-label">{item.label}</span>
-                  <span className="dash-toggle-desc">{item.desc}</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notifSettings[item.key]}
-                  onChange={() => handleNotifChange(item.key)}
-                  className="dash-toggle-input"
-                />
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section className="dash-settings-card">
-          <h2 className="dash-settings-title">امنیت</h2>
-          <div className="dash-security-info">
-            <p>آخرین ورود: امروز</p>
-            <p>دستگاه فعال: مرورگر وب</p>
-            <p>احراز هویت دو مرحله‌ای: غیرفعال</p>
-          </div>
-          <Button variant="outline">فعال‌سازی احراز هویت دو مرحله‌ای</Button>
-        </section>
-
         <section className="dash-settings-card dash-settings-card--danger">
-          <h2 className="dash-settings-title">مدیریت حساب</h2>
-          <p className="dash-settings-desc">با حذف حساب، تمام اطلاعات شما به‌طور دائمی حذف خواهد شد.</p>
-          <Button variant="ghost" className="dash-btn-danger">حذف حساب کاربری</Button>
+          <div className="dash-settings-danger-inner">
+            <div className="dash-settings-danger-icon">
+              <Trash2 size={20} />
+            </div>
+            <div>
+              <h2 className="dash-settings-title">حذف حساب کاربری</h2>
+              <p className="dash-settings-desc">
+                با حذف حساب، تمام اطلاعات شما شامل درخواست‌ها، پیام‌ها و اطلاعات پروفایل به‌طور دائمی حذف خواهد شد. این عمل قابل بازگشت نیست.
+              </p>
+              <button type="button" className="dash-btn-danger-full" onClick={() => setDeleteConfirm(true)}>
+                <Trash2 size={15} />
+                حذف حساب کاربری
+              </button>
+            </div>
+          </div>
         </section>
       </div>
+
+      <Modal open={deleteConfirm} onClose={() => !deleting && setDeleteConfirm(false)} title="حذف حساب کاربری">
+        <div className="dash-delete-account">
+          <div className="dash-delete-account-icon">
+            <AlertTriangle size={28} />
+          </div>
+          <h3>آیا از حذف حساب خود اطمینان دارید؟</h3>
+          <p>تمام اطلاعات شما شامل درخواست‌ها، پیام‌ها و اطلاعات پروفایل برای همیشه حذف خواهند شد.</p>
+          <div className="dash-modal-actions">
+            <Button variant="primary" className="dash-btn-danger" onClick={handleDeleteAccount} disabled={deleting}>
+              {deleting ? 'در حال حذف...' : 'بله، حذف کن'}
+            </Button>
+            <Button variant="outline" onClick={() => setDeleteConfirm(false)} disabled={deleting}>انصراف</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

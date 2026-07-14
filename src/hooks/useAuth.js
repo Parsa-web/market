@@ -1,8 +1,47 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState } from 'react'
-import { authApi } from '../services/api'
-import { migrateSeedData } from '../services/marketCore'
+import { authService } from '../services/authService'
+import { specialistService } from '../services/specialistService'
+import { factoryService } from '../services/factoryService'
 
 const AuthContext = createContext(null)
+
+async function buildEnrichedUser(session) {
+  if (!session) return null
+  const { userId, role, profileId } = session
+  const userBase = { id: userId, role }
+
+  if (role === 'specialist') {
+    const profile = await specialistService.getByUserId(userId)
+    if (profile) {
+      return {
+        ...userBase,
+        fullName: profile.fullName,
+        specialty: profile.specialties?.[0] || '',
+        specialties: profile.specialties || [],
+        experience: profile.experience || '',
+        city: profile.city || '',
+        bio: profile.bio || '',
+        phone: profile.phone || '',
+        profile,
+      }
+    }
+  } else {
+    const profile = await factoryService.getByUserId(userId)
+    if (profile) {
+      return {
+        ...userBase,
+        fullName: profile.companyName,
+        company: profile.companyName,
+        companyName: profile.companyName,
+        industry: profile.industry || '',
+        city: profile.city || '',
+        phone: profile.phone || '',
+        profile,
+      }
+    }
+  }
+  return userBase
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -10,19 +49,34 @@ export function AuthProvider({ children }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
 
   useEffect(() => {
-    const session = authApi.getSession()
-    if (session) {
-      setUser(session)
+    let cancelled = false
+    async function loadSession() {
+      try {
+        const session = authService.getSession()
+        if (session && session.userId != null) {
+          const enriched = await buildEnrichedUser(session)
+          if (!cancelled) setUser(enriched)
+        } else {
+          authService.logout()
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
     }
-    setIsLoading(false)
+    loadSession()
+    return () => { cancelled = true }
   }, [])
 
   const login = useCallback(async (credentials) => {
     setIsAuthenticating(true)
     try {
-      const result = await authApi.login(credentials)
-      setUser(result)
-      return result
+      await authService.login(credentials.identifier, credentials.password)
+      const session = authService.getSession()
+      const enriched = await buildEnrichedUser(session)
+      setUser(enriched)
+      return enriched
+    } catch (err) {
+      throw err
     } finally {
       setIsAuthenticating(false)
     }
@@ -31,24 +85,45 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (data) => {
     setIsAuthenticating(true)
     try {
-      const result = await authApi.register(data)
-      setUser(result)
-      return result
+      await authService.register(data)
+      const session = authService.getSession()
+      const enriched = await buildEnrichedUser(session)
+      setUser(enriched)
+      return enriched
+    } catch (err) {
+      throw err
     } finally {
       setIsAuthenticating(false)
     }
   }, [])
 
   const logout = useCallback(() => {
-    authApi.logout()
+    authService.logout()
     setUser(null)
   }, [])
 
-  const updateUser = useCallback((updates) => {
+  const deleteAccount = useCallback(async () => {
+    if (!user) return
+    await authService.deleteAccount(user.id, user.role)
+    setUser(null)
+  }, [user])
+
+  const updateUser = useCallback(async (updates) => {
     if (!user) return null
-    const result = authApi.updateUser(user.id, updates)
-    setUser(result)
-    return result
+    if (user.role === 'specialist') {
+      const profileUpdates = { ...updates }
+      if (updates.specialty !== undefined) {
+        profileUpdates.specialties = [updates.specialty]
+        delete profileUpdates.specialty
+      }
+      await specialistService.update(user.id, profileUpdates)
+    } else {
+      await factoryService.update(user.id, updates)
+    }
+    const session = authService.getSession()
+    const enriched = await buildEnrichedUser(session)
+    setUser(enriched)
+    return enriched
   }, [user])
 
   const value = {
@@ -60,6 +135,7 @@ export function AuthProvider({ children }) {
     logout,
     setUser,
     updateUser,
+    deleteAccount,
   }
 
   return createElement(AuthContext.Provider, { value }, children)
@@ -67,10 +143,8 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext)
-
   if (!context) {
     throw new Error('useAuth must be used within AuthProvider')
   }
-
   return context
 }

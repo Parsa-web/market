@@ -2,7 +2,6 @@ import { Database, Settings, Cookie, Lock, Shield, ExternalLink, UserCheck, Hard
 import Header from '../components/home/Header'
 import Footer from '../components/home/Footer'
 import HeroSection from '../components/shared/HeroSection'
-import CTASection from '../components/shared/CTASection'
 import { usePrivacy } from '../hooks/usePrivacy'
 import styles from './PrivacyPage.module.css'
 
@@ -11,10 +10,7 @@ const iconMap: Record<string, React.ElementType> = {
 }
 
 export default function PrivacyPage() {
-  const { data, loading, error } = usePrivacy()
-
-  if (loading) return <div className={styles.app}><Header /><div className={styles.loading}>در حال بارگذاری...</div><Footer /></div>
-  if (error || !data) return <div className={styles.app}><Header /><div className={styles.error}>خطا در بارگذاری اطلاعات</div><Footer /></div>
+  const { data } = usePrivacy()
 
   return (
     <div className={styles.app}>
@@ -46,13 +42,6 @@ export default function PrivacyPage() {
           </div>
         </div>
       </section>
-
-      <CTASection
-        title={data.cta.title}
-        subtitle={data.cta.subtitle}
-        factoryBtn={data.cta.factoryBtn}
-        specialistBtn={data.cta.specialistBtn}
-      />
 
       <Footer />
     </div>

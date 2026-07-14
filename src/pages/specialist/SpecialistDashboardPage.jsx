@@ -1,44 +1,23 @@
 import { Eye, MessageSquare, Send, UserCheck } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Button from '../../components/common/Button'
-import OpportunityCard from '../../components/dashboard/OpportunityCard'
 import ProgressCard from '../../components/dashboard/ProgressCard'
 import StatCard from '../../components/dashboard/StatCard'
-import Modal from '../../components/dashboard/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { useSpecialist } from '../../hooks/useSpecialist'
 import { formatBadgeCount } from '../../utils/dashboardUtils'
-import { useState } from 'react'
 
 export default function SpecialistDashboardPage() {
   const { user } = useAuth()
-  const { stats, profileData, recommended, applyToOpportunity } = useSpecialist()
+  const { stats, profileData, loading } = useSpecialist()
   const navigate = useNavigate()
-  const [selectedOpp, setSelectedOpp] = useState(null)
-  const [applyMessage, setApplyMessage] = useState('')
-  const [availableStartDate, setAvailableStartDate] = useState('')
-  const [additionalDescription, setAdditionalDescription] = useState('')
-  const [successMsg, setSuccessMsg] = useState('')
-  const [applying, setApplying] = useState(false)
 
-  const handleApply = async () => {
-    if (!selectedOpp) return
-    setApplying(true)
-    await new Promise((r) => setTimeout(r, 600))
-    await applyToOpportunity(selectedOpp.id, applyMessage, availableStartDate, additionalDescription)
-    setSelectedOpp(null)
-    setApplyMessage('')
-    setAvailableStartDate('')
-    setAdditionalDescription('')
-    setApplying(false)
-    setSuccessMsg('درخواست همکاری با موفقیت ارسال شد')
-    setTimeout(() => setSuccessMsg(''), 3000)
+  if (loading) {
+    return <div className="dash-page"><div className="dash-loading">در حال بارگذاری...</div></div>
   }
 
   return (
     <div className="dash-page">
-      {successMsg && <div className="dash-toast dash-toast--success">{successMsg}</div>}
-
       <section className="dash-welcome">
         <div className="dash-welcome-content">
           <h2 className="dash-welcome-title">سلام، {user?.fullName || 'متخصص'}</h2>
@@ -95,75 +74,6 @@ export default function SpecialistDashboardPage() {
         />
       </section>
 
-      <section className="dash-section">
-        <div className="dash-section-header">
-          <h2 className="dash-section-title">نیازهای صنعتی پیشنهادی</h2>
-          <Link to="/specialist/opportunities" className="dash-section-link">
-            مشاهده همه
-          </Link>
-        </div>
-        <div className="dash-opportunities-list">
-          {(recommended || []).map((opp) => (
-            <OpportunityCard
-              key={opp.id}
-              opportunity={opp}
-              compact
-              onView={() => setSelectedOpp(opp)}
-              onApply={() => setSelectedOpp(opp)}
-            />
-          ))}
-        </div>
-      </section>
-
-      <Modal
-        open={!!selectedOpp}
-        onClose={() => { setSelectedOpp(null); setApplyMessage(''); setAvailableStartDate(''); setAdditionalDescription('') }}
-        title="ارسال درخواست همکاری"
-      >
-        {selectedOpp && (
-          <>
-            <p className="dash-modal-text">
-              درخواست همکاری برای <strong>{selectedOpp.title}</strong>
-            </p>
-
-            {!selectedOpp.applied && (
-              <div className="dash-form" style={{ marginTop: '16px' }}>
-                <div className="auth-field rg-full">
-                  <label className="auth-field-label">پیام به کارخانه (دلخواه)</label>
-                  <textarea
-                    className="dash-textarea"
-                    value={applyMessage}
-                    onChange={(e) => setApplyMessage(e.target.value)}
-                    placeholder="تجربیات و مهارت‌های مرتبط خود را بنویسید..."
-                    rows={3}
-                  />
-                </div>
-                <div className="auth-field rg-full">
-                  <label className="auth-field-label">زمان شروع</label>
-                  <input
-                    className="dash-filter-input"
-                    type="text"
-                    value={availableStartDate}
-                    onChange={(e) => setAvailableStartDate(e.target.value)}
-                    placeholder="از چه زمانی می‌توانید شروع کنید؟"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="dash-modal-actions">
-              <Button variant="outline" onClick={() => { setSelectedOpp(null); setApplyMessage(''); setAvailableStartDate(''); setAdditionalDescription('') }}>انصراف</Button>
-              {!selectedOpp.applied ? (
-                <Button variant="primary" onClick={handleApply} loading={applying} loadingText="در حال ارسال...">
-                  ارسال درخواست همکاری
-                </Button>
-              ) : (
-                <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>درخواست قبلاً ارسال شده</span>
-              )}
-            </div>
-          </>
-        )}
-      </Modal>
     </div>
   )
 }

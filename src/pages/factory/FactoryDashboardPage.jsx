@@ -1,6 +1,7 @@
-import { ClipboardList, MessageSquare, Users } from 'lucide-react'
+import { ClipboardList, MessageSquare, Users, Building2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '../../components/common/Button'
+import ProgressCard from '../../components/dashboard/ProgressCard'
 import RequestCard from '../../components/dashboard/RequestCard'
 import StatCard from '../../components/dashboard/StatCard'
 import { useAuth } from '../../hooks/useAuth'
@@ -9,8 +10,12 @@ import { formatBadgeCount, STATUS_LABELS } from '../../utils/dashboardUtils'
 
 export default function FactoryDashboardPage() {
   const { user } = useAuth()
-  const { stats, requests } = useFactory()
+  const { stats, requests, profileCompletion, missingItems, loading } = useFactory()
   const navigate = useNavigate()
+
+  if (loading) {
+    return <div className="dash-page"><div className="dash-loading">در حال بارگذاری...</div></div>
+  }
 
   const recentRequests = (requests || [])
     .filter((r) => r.status === 'published' || r.status === 'waiting_for_applications' || r.status === 'in_progress')
@@ -53,6 +58,21 @@ export default function FactoryDashboardPage() {
           value={formatBadgeCount(stats?.unreadMessages || 0)}
           description="پیام‌های خوانده نشده"
           to="/factory/messages"
+        />
+        <StatCard
+          icon={Building2}
+          label="درصد تکمیل پروفایل"
+          value={`${profileCompletion || 0}٪`}
+          description="وضعیت پروفایل کارخانه"
+          to="/factory/profile"
+        />
+      </section>
+
+      <section className="dash-section">
+        <ProgressCard
+          percentage={profileCompletion || 0}
+          missingItems={missingItems || []}
+          onComplete={() => navigate('/factory/profile')}
         />
       </section>
 

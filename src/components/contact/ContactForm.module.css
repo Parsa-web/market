@@ -134,9 +134,75 @@
   to { transform: rotate(360deg); }
 }
 
+.selectWrap {
+  position: relative;
+}
+
+.selectWrap .select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 36px;
+}
+
+.selectArrow {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748B;
+  pointer-events: none;
+}
+
+.authPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+
+.authPromptIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 99, 235, 0.08);
+  border-radius: 50%;
+  color: var(--primary);
+}
+
+.authPromptText {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.authBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font);
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, #3B82F6 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.authBtn:hover {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, #2563EB 100%);
+}
+
 .success {
   text-align: center;
-  padding: 40px 20px;
+  padding: 16px 20px;
   background: rgba(22, 163, 74, 0.06);
   border-radius: var(--radius);
   color: #166534;

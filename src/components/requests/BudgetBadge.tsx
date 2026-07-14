@@ -1,4 +1,5 @@
 import { Wallet } from 'lucide-react'
+import { formatBudget } from '../../utils/dashboardUtils'
 import styles from './BudgetBadge.module.css'
 
 interface BudgetBadgeProps {
@@ -7,9 +8,9 @@ interface BudgetBadgeProps {
 
 export default function BudgetBadge({ budget }: BudgetBadgeProps) {
   return (
-    <span className={styles.badge} aria-label={`بودجه: ${budget} تومان`}>
+    <span className={styles.badge} aria-label={`بودجه: ${budget}`}>
       <Wallet size={12} />
-      {budget} تومان
+      {formatBudget(budget)}
     </span>
   )
 }

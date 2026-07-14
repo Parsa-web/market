@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { Send } from 'lucide-react'
+import { Send, LogIn, ChevronDown, Tag } from 'lucide-react'
+import { useAuth } from '../../hooks/useAuth'
+import { Link } from 'react-router-dom'
+import Select from '../common/Select'
 import styles from './ContactForm.module.css'
 
 interface FormData {
@@ -23,6 +26,8 @@ interface ContactFormProps {
 }
 
 export default function ContactForm({ form }: ContactFormProps) {
+  const { user } = useAuth()
+  const isLoggedIn = !!user
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -46,11 +51,13 @@ export default function ContactForm({ form }: ContactFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isLoggedIn) return
     if (!validate()) return
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
       setSubmitted(true)
+      setTimeout(() => setSubmitted(false), 5000)
       setName('')
       setEmail('')
       setPhone('')
@@ -63,12 +70,24 @@ export default function ContactForm({ form }: ContactFormProps) {
     <div className={styles.wrap}>
       <h3 className={styles.title}>{form.title}</h3>
 
-      {submitted ? (
-        <div className={styles.success}>
-          <p>{form.successMessage}</p>
+      {!isLoggedIn ? (
+        <div className={styles.authPrompt}>
+          <div className={styles.authPromptIcon}>
+            <LogIn size={24} />
+          </div>
+          <p className={styles.authPromptText}>برای ارسال پیام لطفاً وارد حساب کاربری خود شوید.</p>
+          <Link to="/login" className={styles.authBtn}>
+            <LogIn size={14} />
+            ورود به حساب
+          </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className={styles.form}>
+          {submitted && (
+            <div className={styles.success}>
+              <p>{form.successMessage}</p>
+            </div>
+          )}
           <div className={styles.row}>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="contact-name">{form.fields.name}</label>
@@ -107,17 +126,18 @@ export default function ContactForm({ form }: ContactFormProps) {
               {errors.phone && <span className={styles.errorText}>{errors.phone}</span>}
             </div>
             <div className={styles.field}>
-              <label className={styles.label} htmlFor="contact-subject">{form.fields.subject}</label>
-              <select
-                id="contact-subject"
-                className={`${styles.select} ${errors.subject ? styles.inputError : ''}`}
+              <Select
+                label={form.fields.subject}
+                icon={Tag}
                 value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-              >
-                <option value="">انتخاب کنید</option>
-                {form.subjects.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              {errors.subject && <span className={styles.errorText}>{errors.subject}</span>}
+                error={errors.subject}
+                onChange={(value) => { setSubject(value); setErrors((prev) => ({ ...prev, subject: '' })) }}
+                placeholder="انتخاب کنید"
+                options={[
+                  { value: '', label: 'انتخاب کنید' },
+                  ...form.subjects.map((s) => ({ value: s, label: s })),
+                ]}
+              />
             </div>
           </div>
 

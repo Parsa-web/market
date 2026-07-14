@@ -1,3 +1,5 @@
+import Select from '../common/Select'
+
 export default function FilterPanel({ filters, onChange, onReset }) {
   return (
     <div className="dash-filter-panel">
@@ -5,15 +7,13 @@ export default function FilterPanel({ filters, onChange, onReset }) {
         <div key={filter.key} className="dash-filter-field">
           <label className="dash-filter-label">{filter.label}</label>
           {filter.type === 'select' ? (
-            <select
-              className="dash-filter-select"
+            <Select
               value={filter.value}
-              onChange={(e) => onChange(filter.key, e.target.value)}
-            >
-              {filter.options.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
+              onChange={(value) => onChange(filter.key, value)}
+              options={filter.options}
+              placeholder={filter.placeholder}
+              fullWidth
+            />
           ) : (
             <input
               type="text"

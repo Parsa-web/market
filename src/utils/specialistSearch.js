@@ -1,11 +1,4 @@
-import { getSpecialistsCatalog } from '../services/marketCore'
-import { specialties } from '../data/specialties'
-
-const SPECIALTY_SEARCH_TERMS = specialties.flatMap((item) => [
-  item.title,
-  item.example,
-  item.id,
-])
+import { specialistService } from '../services/specialistService'
 
 function parseList(value) {
   if (!value) return []
@@ -35,55 +28,28 @@ function getInitials(name) {
     .slice(0, 2)
 }
 
-function getRegisteredSpecialists() {
+export function getAllSpecialists() {
   try {
-    const users = JSON.parse(localStorage.getItem('auth_users') || '[]')
-    return users
-      .filter((user) => user.role === 'specialist')
-      .map((user) => {
-        const devices = parseList(user.devices)
-        const brands = parseList(user.brands)
-        return {
-          id: `reg-${user.id}`,
-          userId: user.id,
-          name: user.fullName || 'متخصص',
-          role: user.specialty || 'متخصص فنی',
-          specialty: user.specialty || '',
-          skills: devices.length > 0 ? devices : [user.specialty].filter(Boolean),
-          machines: devices,
-          brands,
-          experience: user.experience ? `${user.experience} سال` : '',
-          city: user.city || '',
-          verified: false,
-          initials: getInitials(user.fullName),
-          phone: user.phone || user.identifier || '',
-          source: 'registered',
-        }
-      })
+    const profiles = specialistService.getAll()
+    return (profiles || []).map((profile) => ({
+      id: `reg-${profile.id}`,
+      userId: profile.userId,
+      name: profile.fullName || 'متخصص',
+      role: profile.specialties?.[0] || 'متخصص فنی',
+      specialty: profile.specialties?.[0] || '',
+      skills: profile.skills || [],
+      machines: profile.machines || [],
+      brands: profile.brands || [],
+      experience: profile.experience ? `${profile.experience} سال` : '',
+      city: profile.city || '',
+      verified: false,
+      initials: getInitials(profile.fullName),
+      phone: profile.phone || '',
+      source: 'registered',
+    }))
   } catch {
     return []
   }
-}
-
-export function getAllSpecialists() {
-  const SPECIALISTS_CATALOG = getSpecialistsCatalog()
-  const catalog = SPECIALISTS_CATALOG.map((item) => ({ ...item, source: 'catalog' }))
-  const registered = getRegisteredSpecialists()
-
-  const catalogKeys = new Set(
-    catalog.flatMap((item) => [
-      normalizeSearchText(item.name),
-      item.phone ? normalizeSearchText(item.phone) : '',
-    ]).filter(Boolean)
-  )
-
-  const uniqueRegistered = registered.filter((item) => {
-    const nameKey = normalizeSearchText(item.name)
-    const phoneKey = normalizeSearchText(item.phone)
-    return !catalogKeys.has(nameKey) && !(phoneKey && catalogKeys.has(phoneKey))
-  })
-
-  return [...catalog, ...uniqueRegistered]
 }
 
 function buildSearchableText(specialist) {
@@ -95,9 +61,9 @@ function buildSearchableText(specialist) {
     specialist.phone,
     specialist.experience,
     ...(specialist.skills || []),
-    ...(specialist.machines || []),
+    ...(specialist.machines || []).map(m => (typeof m === 'string' ? m : m.name || '')),
     ...(specialist.brands || []),
-    ...SPECIALTY_SEARCH_TERMS,
+    'PLC', 'SCADA', 'HMI', 'Zelio', 'اتوماسیون', 'برق صنعتی', 'مکانیک', 'هیدرولیک', 'پنوماتیک', 'CNC', 'تعمیرات صنعتی', 'ابزار دقیق', 'تأسیسات', 'رباتیک صنعتی', 'توربین',
   ]
     .filter(Boolean)
     .map(normalizeSearchText)
@@ -128,7 +94,7 @@ function matchesFilters(specialist, filters) {
 
   if (equipment) {
     const equipmentNorm = normalizeSearchText(equipment)
-    const machines = (specialist.machines || []).map(normalizeSearchText)
+    const machines = (specialist.machines || []).map(m => normalizeSearchText(typeof m === 'string' ? m : m.name || ''))
     const skills = (specialist.skills || []).map(normalizeSearchText)
     const hasEquipment = machines.some((m) => m.includes(equipmentNorm))
       || skills.some((s) => s.includes(equipmentNorm))

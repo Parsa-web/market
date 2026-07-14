@@ -20,7 +20,8 @@ const STATUS_OPTIONS = [
 ]
 
 export default function RequestsPage() {
-  const { requests, updateRequest, deleteRequest } = useFactory()
+  const { requests, requestService, loading } = useFactory()
+  const { update: updateRequest, remove: deleteRequest } = requestService || {}
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')

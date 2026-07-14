@@ -1,135 +1,212 @@
-import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import Button from '../../components/common/Button'
-import EmptyState from '../../components/dashboard/EmptyState'
-import Modal from '../../components/dashboard/Modal'
-import OpportunityCard from '../../components/dashboard/OpportunityCard'
-import SearchBar from '../../components/dashboard/SearchBar'
+import { useMemo, useState, useCallback } from 'react'
+import SearchBar from '../../components/requests/SearchBar'
+import FilterBar from '../../components/requests/FilterBar'
+import CategoryChip from '../../components/requests/CategoryChip'
+import RequestCard from '../../components/requests/RequestCard'
+import RequestModal from '../../components/requests/RequestModal'
+import ApplicationModal from '../../components/requests/ApplicationModal'
+import EmptyState from '../../components/requests/EmptyState'
+import LoadingSkeleton from '../../components/requests/LoadingSkeleton'
 import { useSpecialist } from '../../hooks/useSpecialist'
+import styles from './OpportunitiesPage.module.css'
+
+const ALL_CATEGORIES = [
+  'PLC', 'اتوماسیون', 'برق صنعتی', 'الکترونیک صنعتی',
+  'مکانیک', 'هیدرولیک', 'پنوماتیک', 'سرامیک',
+  'بسته‌بندی', 'فولاد', 'غذایی', 'نساجی', 'معدن', 'نفت و گاز',
+]
+
+const URGENCY_MAP = { 'فوری': 'high', 'بالا': 'high', 'متوسط': 'medium', 'پایین': 'low' }
+const STATUS_MAP = {
+  'published': 'open',
+  'waiting_for_applications': 'open',
+  'in_progress': 'in_progress',
+  'draft': 'closed',
+  'completed': 'closed',
+  'cancelled': 'closed',
+}
+
+function toRequestCard(req, matchedIds) {
+  return {
+    id: req.id,
+    title: req.title,
+    factoryName: req.factoryName || 'کارخانه صنعتی',
+    industry: req.industry || '',
+    machine: req.machine || '',
+    brand: req.brand || '',
+    city: req.location || '',
+    province: req.location || '',
+    requiredSkills: req.skillsRequired || [],
+    description: req.description || '',
+    budget: req.budget || '',
+    deadline: req.applicationDeadline || '',
+    urgency: URGENCY_MAP[req.priority] || 'medium',
+    status: STATUS_MAP[req.status] || 'closed',
+    applicationsCount: 0,
+    estimatedDuration: req.requiredTime || '',
+    attachments: [],
+    createdAt: req.createdAt || '',
+    applied: req.applied || false,
+    matched: matchedIds.has(req.id),
+  }
+}
 
 export default function OpportunitiesPage() {
-  const { opportunities, applyToOpportunity } = useSpecialist()
-  const [searchParams] = useSearchParams()
-  const initialQuery = searchParams.get('q') || ''
-  const [search, setSearch] = useState(initialQuery)
-  const [selectedOpp, setSelectedOpp] = useState(null)
-  const [applyMessage, setApplyMessage] = useState('')
-  const [availableStartDate, setAvailableStartDate] = useState('')
-  const [additionalDescription, setAdditionalDescription] = useState('')
+  const { opportunities, applyToOpportunity, loading, matchedRequestIds } = useSpecialist()
+  const [filters, setFilters] = useState({
+    search: '', industry: '', machine: '', brand: '',
+    province: '', city: '', skill: '', urgency: '', status: '',
+  })
+  const [selectedForDetail, setSelectedForDetail] = useState(null)
+  const [selectedForApply, setSelectedForApply] = useState(null)
   const [successMsg, setSuccessMsg] = useState('')
-  const [applying, setApplying] = useState(false)
+
+  const mapped = useMemo(() => (opportunities || []).map((r) => toRequestCard(r, matchedRequestIds)), [opportunities, matchedRequestIds])
+
+  const industries = useMemo(() => [...new Set(mapped.map((r) => r.industry))].sort(), [mapped])
+  const machines = useMemo(() => [...new Set(mapped.map((r) => r.machine))].sort(), [mapped])
+  const brands = useMemo(() => [...new Set(mapped.map((r) => r.brand))].sort(), [mapped])
+  const provinces = useMemo(() => [...new Set(mapped.map((r) => r.province))].sort(), [mapped])
+  const cities = useMemo(() => {
+    const all = filters.province
+      ? mapped.filter((r) => r.province === filters.province).map((r) => r.city)
+      : mapped.map((r) => r.city)
+    return [...new Set(all)].sort()
+  }, [mapped, filters.province])
+  const skills = useMemo(
+    () => [...new Set(mapped.flatMap((r) => r.requiredSkills))].sort(),
+    [mapped],
+  )
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    if (!q) return opportunities || []
-    return (opportunities || []).filter(
-      (o) =>
-        o.title?.toLowerCase().includes(q) ||
-        o.machine?.toLowerCase().includes(q) ||
-        o.brand?.toLowerCase().includes(q) ||
-        o.industry?.toLowerCase().includes(q)
-    )
-  }, [opportunities, search])
+    return mapped.filter((r) => {
+      const fullText = [
+        r.title, r.factoryName, r.machine, r.brand,
+        r.city, r.industry, ...r.requiredSkills,
+      ].join(' ').toLowerCase()
+      const q = filters.search.toLowerCase()
+      if (filters.search && !fullText.includes(q)) return false
+      if (filters.industry && r.industry !== filters.industry) return false
+      if (filters.machine && r.machine !== filters.machine) return false
+      if (filters.brand && r.brand !== filters.brand) return false
+      if (filters.province && r.province !== filters.province) return false
+      if (filters.city && r.city !== filters.city) return false
+      if (filters.skill && !r.requiredSkills.some((s) => s.toLowerCase().includes(filters.skill.toLowerCase()))) return false
+      if (filters.urgency && r.urgency !== filters.urgency) return false
+      if (filters.status && r.status !== filters.status) return false
+      return true
+    })
+  }, [mapped, filters])
 
-  const handleApply = async () => {
-    if (!selectedOpp) return
-    setApplying(true)
-    await new Promise((r) => setTimeout(r, 600))
-    await applyToOpportunity(selectedOpp.id, applyMessage, availableStartDate, additionalDescription)
-    setSelectedOpp(null)
-    setApplyMessage('')
-    setAvailableStartDate('')
-    setAdditionalDescription('')
-    setApplying(false)
+  const activeCategory = filters.skill
+
+  const handleCategoryClick = useCallback((cat) => {
+    setFilters((prev) => ({ ...prev, skill: prev.skill === cat ? '' : cat }))
+  }, [])
+
+  const handleReset = useCallback(() => {
+    setFilters({ search: '', industry: '', machine: '', brand: '', province: '', city: '', skill: '', urgency: '', status: '' })
+  }, [])
+
+  const handleSelect = useCallback((id) => {
+    const opp = mapped.find((r) => r.id === id)
+    if (opp) setSelectedForDetail(opp)
+  }, [mapped])
+
+  const handleApplyOpen = useCallback((id) => {
+    const opp = mapped.find((r) => r.id === id)
+    if (opp) setSelectedForApply(opp)
+  }, [mapped])
+
+  const handleApplySubmit = useCallback(async ({ message, startDate, attachments }) => {
+    const request = selectedForApply || selectedForDetail
+    if (!request) return
+    await applyToOpportunity(request.id, message, startDate, '', attachments)
     setSuccessMsg('درخواست همکاری با موفقیت ارسال شد')
     setTimeout(() => setSuccessMsg(''), 3000)
+  }, [selectedForApply, selectedForDetail, applyToOpportunity])
+
+  if (loading) {
+    return (
+      <div className="dash-page">
+        <LoadingSkeleton />
+      </div>
+    )
   }
 
   return (
     <div className="dash-page">
       {successMsg && <div className="dash-toast dash-toast--success">{successMsg}</div>}
 
-      <p className="dash-page-desc">نیازهای صنعتی ثبت‌شده توسط کارخانه‌ها را مشاهده کنید و درخواست همکاری ارسال کنید.</p>
+      <SearchBar
+        value={filters.search}
+        onChange={(v) => setFilters((prev) => ({ ...prev, search: v }))}
+      />
 
-      <SearchBar value={search} onChange={setSearch} placeholder="جستجو در نیازهای صنعتی..." />
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        industries={industries}
+        machines={machines}
+        brands={brands}
+        provinces={provinces}
+        cities={cities}
+        skills={skills}
+      />
 
-      {filtered.length === 0 ? (
-        <EmptyState
-          title="نیاز صنعتی‌ای یافت نشد"
-          description="در حال حاضر نیاز صنعتی متناسب با جستجوی شما وجود ندارد."
-        />
-      ) : (
-        <div className="dash-opportunities-list">
-          {filtered.map((opp) => (
-            <OpportunityCard
-              key={opp.id}
-              opportunity={opp}
-              onView={() => setSelectedOpp(opp)}
-              onApply={() => setSelectedOpp(opp)}
+      <section className={styles.categories}>
+        <div className={styles.chipScroll}>
+          {ALL_CATEGORIES.map((cat) => (
+            <CategoryChip
+              key={cat}
+              label={cat}
+              active={activeCategory === cat}
+              onClick={() => handleCategoryClick(cat)}
             />
           ))}
         </div>
+      </section>
+
+      {mapped.length === 0 ? (
+        <LoadingSkeleton />
+      ) : (
+        <section className={styles.gridSection}>
+          <p className={styles.count}>
+            <strong>{filtered.length}</strong> نیاز صنعتی پیدا شد
+          </p>
+
+          {filtered.length === 0 ? (
+            <EmptyState onReset={handleReset} />
+          ) : (
+            <div className={styles.grid}>
+              {filtered.map((r) => (
+                <RequestCard
+                  key={r.id}
+                  request={r}
+                  onSelect={handleSelect}
+                  onApply={handleApplyOpen}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
-      <Modal
-        open={!!selectedOpp}
-        onClose={() => { setSelectedOpp(null); setApplyMessage(''); setAvailableStartDate(''); setAdditionalDescription('') }}
-        title="ارسال درخواست همکاری"
-      >
-        {selectedOpp && (
-          <>
-            <p className="dash-modal-text">
-              درخواست همکاری برای <strong>{selectedOpp.title}</strong>
-            </p>
+      <RequestModal
+        request={selectedForDetail}
+        onClose={() => setSelectedForDetail(null)}
+        onApply={(id) => {
+          setSelectedForDetail(null)
+          const opp = mapped.find((r) => r.id === id)
+          if (opp) setSelectedForApply(opp)
+        }}
+      />
 
-            {!selectedOpp.applied && (
-              <div className="dash-form" style={{ marginTop: '16px' }}>
-                <div className="auth-field rg-full">
-                  <label className="auth-field-label">پیام به کارخانه</label>
-                  <textarea
-                    className="dash-textarea"
-                    value={applyMessage}
-                    onChange={(e) => setApplyMessage(e.target.value)}
-                    placeholder="تجربیات و مهارت‌های مرتبط خود را توضیح دهید..."
-                    rows={3}
-                  />
-                </div>
-                <div className="auth-field rg-full">
-                  <label className="auth-field-label">زمان شروع</label>
-                  <input
-                    className="dash-filter-input"
-                    type="text"
-                    value={availableStartDate}
-                    onChange={(e) => setAvailableStartDate(e.target.value)}
-                    placeholder="از چه زمانی می‌توانید شروع کنید؟"
-                  />
-                </div>
-                <div className="auth-field rg-full">
-                  <label className="auth-field-label">توضیحات تکمیلی</label>
-                  <textarea
-                    className="dash-textarea"
-                    value={additionalDescription}
-                    onChange={(e) => setAdditionalDescription(e.target.value)}
-                    placeholder="توضیحات اضافی در مورد توانمندی‌ها یا شرایط..."
-                    rows={2}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="dash-modal-actions">
-              <Button variant="outline" onClick={() => { setSelectedOpp(null); setApplyMessage(''); setAvailableStartDate(''); setAdditionalDescription('') }}>انصراف</Button>
-              {!selectedOpp.applied ? (
-                <Button variant="primary" onClick={handleApply} loading={applying} loadingText="در حال ارسال...">
-                  ارسال درخواست همکاری
-                </Button>
-              ) : (
-                <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>درخواست قبلاً ارسال شده</span>
-              )}
-            </div>
-          </>
-        )}
-      </Modal>
+      <ApplicationModal
+        request={selectedForApply}
+        onClose={() => setSelectedForApply(null)}
+        onSubmit={handleApplySubmit}
+      />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
+import Select from '../../components/common/Select'
 import { specialtySelectOptions } from '../../data/specialties'
 import { useFactory } from '../../hooks/useFactory'
 
@@ -26,7 +27,6 @@ export default function NewRequestPage() {
     location: '',
     budget: '',
     requiredTime: '',
-    applicationDeadline: '',
     priority: 'متوسط',
   })
 
@@ -45,7 +45,6 @@ export default function NewRequestPage() {
           location: existing.location || '',
           budget: existing.budget || '',
           requiredTime: existing.requiredTime || '',
-          applicationDeadline: existing.applicationDeadline || '',
           priority: existing.priority || 'متوسط',
         })
       }
@@ -73,7 +72,7 @@ export default function NewRequestPage() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 600))
+    setErrors({})
 
     const requestData = {
       title: form.title,
@@ -86,20 +85,23 @@ export default function NewRequestPage() {
       location: form.location,
       budget: form.budget,
       requiredTime: form.requiredTime,
-      applicationDeadline: form.applicationDeadline,
       priority: form.priority,
       status: 'published',
     }
 
-    if (isEdit) {
-      await updateRequest(Number(id), requestData)
-    } else {
-      await addRequest(requestData)
+    try {
+      if (isEdit) {
+        await updateRequest(Number(id), requestData)
+      } else {
+        await addRequest(requestData)
+      }
+      setLoading(false)
+      setSuccess(true)
+      setTimeout(() => navigate('/factory/requests'), 1500)
+    } catch (err) {
+      setLoading(false)
+      setErrors({ form: err.message || 'خطا در ثبت نیاز. لطفاً دوباره تلاش کنید.' })
     }
-
-    setLoading(false)
-    setSuccess(true)
-    setTimeout(() => navigate('/factory/requests'), 1500)
   }
 
   if (success) {
@@ -123,6 +125,7 @@ export default function NewRequestPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="dash-form">
+          {errors.form && <div style={{ padding: '12px 16px', background: '#FEF2F2', color: '#DC2626', borderRadius: 'var(--radius-sm)', fontSize: 13, marginBottom: 16, border: '1px solid #FECACA' }}>{errors.form}</div>}
           <Input
             label="عنوان نیاز"
             required
@@ -146,20 +149,17 @@ export default function NewRequestPage() {
           </div>
 
           <div className="dash-form-grid">
-            <div className="auth-field">
-              <label className="auth-field-label">صنعت <span className="rg-required">*</span></label>
-              <select
-                className={`dash-select${errors.industry ? ' has-error' : ''}`}
-                value={form.industry}
-                onChange={(e) => update('industry', e.target.value)}
-              >
-                <option value="">انتخاب کنید</option>
-                {specialtySelectOptions.slice(1).map((item) => (
-                  <option key={item.value} value={item.value}>{item.label}</option>
-                ))}
-              </select>
-              {errors.industry && <p className="auth-error-text">{errors.industry}</p>}
-            </div>
+            <Select
+              label="صنعت"
+              required
+              value={form.industry}
+              error={errors.industry}
+              onChange={(value) => update('industry', value)}
+              options={[
+                { value: '', label: 'انتخاب کنید' },
+                ...specialtySelectOptions.slice(1).map(item => ({ value: item.value, label: item.label })),
+              ]}
+            />
 
             <Input
               label="دستگاه"
@@ -189,10 +189,12 @@ export default function NewRequestPage() {
             />
 
             <Input
-              label="بودجه پیشنهادی"
-              value={form.budget}
-              onChange={(e) => update('budget', e.target.value)}
-              placeholder="مثال: ۵۰ میلیون تومان"
+              label="بودجه پیشنهادی (تومان)"
+              type="text"
+              inputMode="numeric"
+              value={form.budget.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              onChange={(e) => update('budget', e.target.value.replace(/,/g, ''))}
+              placeholder="مبلغ به تومان"
             />
 
             <Input
@@ -202,40 +204,25 @@ export default function NewRequestPage() {
               placeholder="مثال: ۲ هفته"
             />
 
-            <Input
-              label="مهلت دریافت درخواست"
-              type="date"
-              value={form.applicationDeadline}
-              onChange={(e) => update('applicationDeadline', e.target.value)}
+            <Select
+              label="سابقه مورد نیاز"
+              value={form.experienceLevel}
+              onChange={(value) => update('experienceLevel', value)}
+              options={[
+                { value: '', label: 'انتخاب کنید' },
+                { value: 'کمتر از ۳ سال', label: 'کمتر از ۳ سال' },
+                { value: 'بیش از ۳ سال', label: 'بیش از ۳ سال' },
+                { value: 'بیش از ۵ سال', label: 'بیش از ۵ سال' },
+                { value: 'بیش از ۸ سال', label: 'بیش از ۸ سال' },
+              ]}
             />
 
-            <div className="auth-field">
-              <label className="auth-field-label">سابقه مورد نیاز</label>
-              <select
-                className="dash-select"
-                value={form.experienceLevel}
-                onChange={(e) => update('experienceLevel', e.target.value)}
-              >
-                <option value="">انتخاب کنید</option>
-                <option value="کمتر از ۳ سال">کمتر از ۳ سال</option>
-                <option value="بیش از ۳ سال">بیش از ۳ سال</option>
-                <option value="بیش از ۵ سال">بیش از ۵ سال</option>
-                <option value="بیش از ۸ سال">بیش از ۸ سال</option>
-              </select>
-            </div>
-
-            <div className="auth-field">
-              <label className="auth-field-label">اولویت</label>
-              <select
-                className="dash-select"
-                value={form.priority}
-                onChange={(e) => update('priority', e.target.value)}
-              >
-                {PRIORITY_OPTIONS.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="اولویت"
+              value={form.priority}
+              onChange={(value) => update('priority', value)}
+              options={PRIORITY_OPTIONS.map(p => ({ value: p, label: p }))}
+            />
           </div>
 
           <Input

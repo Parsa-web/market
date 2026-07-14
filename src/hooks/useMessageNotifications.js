@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { marketConversations, marketMessages, marketStats } from '../services/marketCore'
-import { emitDashboardDataChange } from '../utils/dashboardEvents'
+import { messageService } from '../services/messageService'
 import { useAuth } from './useAuth'
 
 export function useMessageNotifications() {
@@ -25,34 +24,33 @@ export function useMessageNotifications() {
       return
     }
     let cancelled = false
-    ;(async () => {
-      if (user.role === 'factory') {
-        const [stats, previews] = await Promise.all([
-          marketStats.getFactoryStats(user.id),
-          marketConversations.getUnreadPreviews(user.id),
-        ])
+
+    async function load() {
+      try {
+        const unreadCount = await messageService.getUnreadCount(user.id)
+        const previews = await messageService.getUnreadPreviews(user.id)
+
         if (!cancelled) {
-          setNotifications({ unreadCount: stats.unreadMessages, previews, enabled: true, userId: user.id })
+          setNotifications({ unreadCount, previews, enabled: true, userId: user.id })
         }
-      } else {
-        const [stats, previews] = await Promise.all([
-          marketStats.getSpecialistStats(user.id, user),
-          marketConversations.getUnreadPreviews(user.id),
-        ])
+      } catch {
         if (!cancelled) {
-          setNotifications({ unreadCount: stats.unreadMessages, previews, enabled: true, userId: user.id })
+          setNotifications({ unreadCount: 0, previews: [], enabled: true, userId: user.id })
         }
       }
-    })()
-    return () => { cancelled = true }
+    }
+
+    load()
+    const pollId = setInterval(load, 10000)
+    return () => { cancelled = true; clearInterval(pollId) }
   }, [user, version])
 
-  const markMessageRead = useCallback(async (conversationId, messageId) => {
+  const markMessageRead = useCallback(async (conversationId) => {
     if (!user?.id) return false
-    const result = await marketMessages.markRead(conversationId, messageId, user.id)
-    if (result) emitDashboardDataChange()
-    return result
-  }, [user])
+    await messageService.markAsRead(conversationId)
+    refresh()
+    return true
+  }, [user, refresh])
 
   return { ...notifications, refresh, markMessageRead }
 }

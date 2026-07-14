@@ -15,10 +15,12 @@
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 720px;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: var(--shadow-xl);
   position: relative;
+  overflow: hidden;
 }
 
 .modal:focus-visible {
@@ -27,10 +29,9 @@
 }
 
 .closeBtn {
-  position: sticky;
+  position: absolute;
   top: 16px;
-  float: inline-end;
-  margin-inline-end: 16px;
+  inset-inline-end: 16px;
   width: 36px;
   height: 36px;
   display: flex;
@@ -57,6 +58,9 @@
 
 .body {
   padding: 32px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-gutter: stable;
 }
 
 .header {
@@ -257,7 +261,7 @@
 
   .closeBtn {
     top: 12px;
-    margin-inline-end: 12px;
+    inset-inline-end: 12px;
   }
 
   .ctaActions {

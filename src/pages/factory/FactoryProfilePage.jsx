@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Avatar from '../../components/dashboard/Avatar'
-import { api } from '../../services/marketCore/storage'
 import { useAuth } from '../../hooks/useAuth'
 import { useFactory } from '../../hooks/useFactory'
+import { factoryService } from '../../services/factoryService'
 
 export default function FactoryProfilePage() {
   const { user, updateUser } = useAuth()
@@ -29,15 +29,12 @@ export default function FactoryProfilePage() {
   const handleSave = async () => {
     updateUser(form)
     try {
-      const factories = api.getByRelated('factories', 'userId', user.id)
-      if (factories.length > 0) {
-        api.patch('factories', factories[0].id, {
-          companyName: form.company,
-          industry: form.industry,
-          city: form.city,
-          description: `خطوط تولید: ${form.lines} | تجهیزات: ${form.equipment}`,
-        })
-      }
+      factoryService.update(user.id, {
+        companyName: form.company,
+        industry: form.industry,
+        city: form.city,
+        description: `خطوط تولید: ${form.lines} | تجهیزات: ${form.equipment}`,
+      })
       refresh()
     } catch {}
     setEditing(false)

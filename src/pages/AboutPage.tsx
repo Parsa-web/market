@@ -1,19 +1,15 @@
 import Header from '../components/home/Header'
 import Footer from '../components/home/Footer'
 import HeroSection from '../components/shared/HeroSection'
-import CTASection from '../components/shared/CTASection'
 import SectionTitle from '../components/shared/SectionTitle'
 import ValuesSection from '../components/about/ValuesSection'
-import Timeline from '../components/about/Timeline'
+
 import StatsSection from '../components/about/StatsSection'
 import { useAbout } from '../hooks/useAbout'
 import styles from './AboutPage.module.css'
 
 export default function AboutPage() {
-  const { data, loading, error } = useAbout()
-
-  if (loading) return <div className={styles.app}><Header /><div className={styles.loading}>در حال بارگذاری...</div><Footer /></div>
-  if (error || !data) return <div className={styles.app}><Header /><div className={styles.error}>خطا در بارگذاری اطلاعات</div><Footer /></div>
+  const { data } = useAbout()
 
   return (
     <div className={styles.app}>
@@ -72,16 +68,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Timeline */}
-      <section className={styles.section}>
-        <div className={styles.container}>
-          <SectionTitle title="نحوه کار صنعت‌نت" subtitle="از ثبت‌نام تا تکمیل پروژه، مراحل کار به صورت زیر انجام می‌شود" />
-          <div className={styles.timelineWrap}>
-            <Timeline steps={data.timeline} />
-          </div>
-        </div>
-      </section>
-
       {/* Stats */}
       <section className={`${styles.section} ${styles.altBg}`}>
         <div className={styles.container}>
@@ -89,13 +75,6 @@ export default function AboutPage() {
           <StatsSection stats={data.stats} />
         </div>
       </section>
-
-      <CTASection
-        title={data.cta.title}
-        subtitle={data.cta.subtitle}
-        factoryBtn={data.cta.factoryBtn}
-        specialistBtn={data.cta.specialistBtn}
-      />
 
       <Footer />
     </div>

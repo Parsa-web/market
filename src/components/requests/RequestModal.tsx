@@ -2,9 +2,10 @@ import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, MapPin, Building2, Calendar, Clock, Users, Paperclip, Wrench, Tag } from 'lucide-react'
 import type { IndustrialRequest } from './types'
-import StatusBadge from './StatusBadge'
 import UrgencyBadge from './UrgencyBadge'
 import BudgetBadge from './BudgetBadge'
+import { useAuth } from '../../hooks/useAuth'
+import { formatPersianDate } from '../../utils/dashboardUtils'
 import styles from './RequestModal.module.css'
 
 interface RequestModalProps {
@@ -14,6 +15,8 @@ interface RequestModalProps {
 }
 
 export default function RequestModal({ request, onClose, onApply }: RequestModalProps) {
+  const { user } = useAuth()
+  const isLoggedIn = !!user
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -64,7 +67,6 @@ export default function RequestModal({ request, onClose, onApply }: RequestModal
             <div className={styles.body}>
               <div className={styles.header}>
                 <div className={styles.headerBadges}>
-                  <StatusBadge status={request.status} />
                   <UrgencyBadge urgency={request.urgency} />
                 </div>
                 <h2 className={styles.title}>{request.title}</h2>
@@ -112,7 +114,7 @@ export default function RequestModal({ request, onClose, onApply }: RequestModal
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>تاریخ انتشار</span>
-                    <span className={styles.infoValue}>{request.createdAt}</span>
+                    <span className={styles.infoValue}>{formatPersianDate(request.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -143,9 +145,11 @@ export default function RequestModal({ request, onClose, onApply }: RequestModal
               </div>
 
               <div className={styles.cta}>
-                <p className={styles.ctaText}>
-                  برای ارسال درخواست همکاری، ابتدا در صنعت‌نت ثبت‌نام کنید.
-                </p>
+                {!isLoggedIn && (
+                  <p className={styles.ctaText}>
+                    برای ارسال درخواست همکاری، ابتدا در صنعت‌نت ثبت‌نام کنید.
+                  </p>
+                )}
                 <div className={styles.ctaActions}>
                   <button
                     type="button"

@@ -1,4 +1,4 @@
-import { Paperclip, Send } from 'lucide-react'
+import { Paperclip, Send, X, FileText } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import EmptyState from '../../components/dashboard/EmptyState'
@@ -7,6 +7,18 @@ import Avatar from '../../components/dashboard/Avatar'
 import ChatBubble from '../../components/dashboard/ChatBubble'
 import { formatBadgeCount } from '../../utils/dashboardUtils'
 import { useFactory } from '../../hooks/useFactory'
+import { useAuth } from '../../hooks/useAuth'
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = () => reject(new Error('خطا در خواندن فایل'))
+    reader.readAsDataURL(file)
+  })
+}
 
 export default function MessagesPage() {
   const {
@@ -18,6 +30,8 @@ export default function MessagesPage() {
     sendMessage,
   } = useFactory()
 
+  const { user } = useAuth()
+
   const [searchParams] = useSearchParams()
   const paramConversation = Number(searchParams.get('conversation'))
   const initialId = paramConversation || conversations[0]?.id || null
@@ -27,6 +41,9 @@ export default function MessagesPage() {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef(null)
   const [chatScrollRoot, setChatScrollRoot] = useState(null)
+  const fileInputRef = useRef(null)
+  const [attachedFile, setAttachedFile] = useState(null)
+  const [fileError, setFileError] = useState('')
 
   const reloadMessages = useCallback(async (id) => {
     if (id) {
@@ -60,14 +77,53 @@ export default function MessagesPage() {
     markMessageRead(conversationId, messageId)
   }, [markMessageRead])
 
+  useEffect(() => {
+    if (!activeId) return
+    const id = setInterval(() => {
+      reloadMessages(activeId)
+      window.dispatchEvent(new CustomEvent('dashboard-data-change'))
+    }, 5000)
+    return () => clearInterval(id)
+  }, [activeId, reloadMessages])
+
   const activeConversation = conversations.find((c) => c.id === activeId)
 
-  const handleSend = (e) => {
+  const handleAttach = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileError('')
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError('حجم فایل باید کمتر از ۱۰ مگابایت باشد')
+      e.target.value = ''
+      return
+    }
+    try {
+      const data = await fileToBase64(file)
+      setAttachedFile({ name: file.name, data, size: file.size })
+    } catch {
+      setFileError('خطا در خواندن فایل')
+    }
+    e.target.value = ''
+  }
+
+  const removeAttachedFile = () => {
+    setAttachedFile(null)
+    setFileError('')
+  }
+
+  const handleSend = async (e) => {
     e.preventDefault()
-    if (!input.trim() || !activeId) return
-    sendMessage(activeId, input.trim())
+    if ((!input.trim() && !attachedFile) || !activeId) return
+    const fileInfo = attachedFile ? { name: attachedFile.name, data: attachedFile.data, size: attachedFile.size } : undefined
+    await sendMessage(activeId, input.trim(), fileInfo)
     reloadMessages(activeId)
     setInput('')
+    setAttachedFile(null)
+    setFileError('')
   }
 
   if (conversations.length === 0) {
@@ -119,22 +175,41 @@ export default function MessagesPage() {
                     conversationId={activeId}
                     onRead={handleRead}
                     scrollRoot={chatScrollRoot}
-                    ownerId="factory"
+                    ownerId={user?.profile?.id || user?.id}
                   />
                 ))}
                 <div ref={messagesEndRef} />
               </div>
 
               <form className="dash-chat-input" onSubmit={handleSend}>
-                <button type="button" className="dash-chat-attach" aria-label="پیوست">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  onChange={handleFileSelect}
+                />
+                <button type="button" className="dash-chat-attach" onClick={handleAttach} aria-label="پیوست">
                   <Paperclip size={20} />
                 </button>
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="پیام خود را بنویسید..."
-                />
+                <div className="dash-chat-input-main">
+                  {attachedFile && (
+                    <div className="dash-chat-input-file">
+                      <FileText size={14} />
+                      <span className="dash-chat-input-file-name">{attachedFile.name}</span>
+                      <button type="button" onClick={removeAttachedFile} className="dash-chat-input-file-remove">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  {fileError && <div className="dash-chat-input-error">{fileError}</div>}
+                  <input
+                    type="text"
+                    className="dash-chat-input-field"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="پیام خود را بنویسید..."
+                  />
+                </div>
                 <button type="submit" className="dash-chat-send" aria-label="ارسال">
                   <Send size={20} />
                 </button>

@@ -13,6 +13,7 @@ export default function Input({
   value,
   onChange,
   onClearError,
+  suffix,
   ...props
 }) {
   const [showPassword, setShowPassword] = useState(false)
@@ -24,6 +25,16 @@ export default function Input({
     onClearError?.()
   }
 
+  const inputEl = (
+    <input
+      type={inputType}
+      className={`auth-input${suffix ? ' auth-input--has-suffix' : ''}${error ? ' has-error' : ''}`}
+      value={value}
+      onChange={handleChange}
+      {...props}
+    />
+  )
+
   return (
     <div className={`auth-field${fullWidth ? ' rg-full' : ''}${className ? ` ${className}` : ''}`}>
       {label && (
@@ -34,13 +45,12 @@ export default function Input({
       )}
       <div className="auth-input-wrapper">
         {Icon && <Icon className="auth-input-icon" size={iconSize} />}
-        <input
-          type={inputType}
-          className={`auth-input${error ? ' has-error' : ''}`}
-          value={value}
-          onChange={handleChange}
-          {...props}
-        />
+        {suffix ? (
+          <div className="auth-input-suffix-wrap">
+            {inputEl}
+            <span className="auth-input-suffix">{suffix}</span>
+          </div>
+        ) : inputEl}
         {isPassword && (
           <button
             type="button"

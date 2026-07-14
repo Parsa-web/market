@@ -5,9 +5,6 @@ import AudienceCards from '../components/how-it-works/AudienceCards'
 import FactoryTimeline from '../components/how-it-works/FactoryTimeline'
 import SpecialistTimeline from '../components/how-it-works/SpecialistTimeline'
 import MatchingDiagram from '../components/how-it-works/MatchingDiagram'
-import BenefitsSection from '../components/how-it-works/BenefitsSection'
-import FaqAccordion from '../components/how-it-works/FaqAccordion'
-import CTASection from '../components/how-it-works/CTASection'
 
 export default function HowItWorksPage() {
   return (
@@ -19,9 +16,6 @@ export default function HowItWorksPage() {
         <FactoryTimeline />
         <SpecialistTimeline />
         <MatchingDiagram />
-        <BenefitsSection />
-        <FaqAccordion />
-        <CTASection />
       </main>
       <Footer />
     </div>

@@ -1,22 +1,7 @@
-import { useState, useEffect } from 'react'
 import { termsService } from '../services/content/termsService'
 
+const DATA = termsService.getData()
+
 export function useTerms() {
-  const [data, setData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    setLoading(true)
-    setError(false)
-
-    termsService.getData()
-      .then(setData)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
-
-    return () => {}
-  }, [])
-
-  return { data, loading, error }
+  return { data: DATA, loading: false, error: false }
 }

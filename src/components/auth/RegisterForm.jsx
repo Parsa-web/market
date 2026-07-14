@@ -1,12 +1,18 @@
 import {
+  Apple,
   Briefcase,
   Building2,
+  Car,
   Check,
   ChevronRight,
-  Cpu,
+  Droplets,
+  Flame,
   GraduationCap,
+  HardHat,
   Lock,
+  Mail,
   MapPin,
+  MoreHorizontal,
   Package,
   Phone,
   Tag,
@@ -17,19 +23,20 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Button from '../common/Button'
 import Input from '../common/Input'
-import { getSpecialtyPlaceholder, specialtyTitles } from '../../data/specialties'
+import Select from '../common/Select'
 import { useAuth } from '../../hooks/useAuth'
+import { specialtySelectOptions } from '../../data/specialties'
 
 function FactoryForm({ onBack, onSuccess }) {
   const { register } = useAuth()
   const [data, setData] = useState({
-    company: '',
-    manager: '',
+    companyName: '',
     phone: '',
+    email: '',
     industry: '',
     city: '',
-    lines: '',
-    equipment: '',
+    province: '',
+    description: '',
     password: '',
   })
   const [errors, setErrors] = useState({})
@@ -44,21 +51,19 @@ function FactoryForm({ onBack, onSuccess }) {
 
   const validate = () => {
     const nextErrors = {}
+    const v = data
 
-    const v = data // alias
-
-    if (!v.company.trim()) nextErrors.company = 'نام کارخانه الزامی است'
-    else if (v.company.trim().length < 3) nextErrors.company = 'نام کارخانه باید حداقل ۳ حرف باشد'
-
-    if (!v.manager.trim()) nextErrors.manager = 'نام مسئول فنی الزامی است'
-    else if (v.manager.trim().length < 3) nextErrors.manager = 'نام باید حداقل ۳ حرف باشد'
+    if (!v.companyName.trim()) nextErrors.companyName = 'نام کارخانه الزامی است'
+    else if (v.companyName.trim().length < 3) nextErrors.companyName = 'نام کارخانه باید حداقل ۳ حرف باشد'
 
     if (!v.phone.trim()) nextErrors.phone = 'شماره تماس الزامی است'
     else if (!/^09\d{9}$/.test(v.phone.trim())) nextErrors.phone = 'شماره موبایل معتبر نیست (مثال: ۰۹۱۲۳۴۵۶۷۸۹)'
 
+    if (!v.email.trim()) nextErrors.email = 'ایمیل الزامی است'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) nextErrors.email = 'فرمت ایمیل معتبر نیست'
+
     if (!v.industry.trim()) nextErrors.industry = 'صنعت الزامی است'
     if (!v.city.trim()) nextErrors.city = 'شهر الزامی است'
-
     if (!v.password) nextErrors.password = 'رمز عبور الزامی است'
     else if (v.password.length < 6) nextErrors.password = 'رمز عبور باید حداقل ۶ کاراکتر باشد'
 
@@ -75,7 +80,7 @@ function FactoryForm({ onBack, onSuccess }) {
       await register({ ...data, identifier: data.phone, role: 'factory' })
       onSuccess()
     } catch (err) {
-      setErrors({ phone: err.message })
+      setErrors({ form: err.message })
     } finally {
       setIsSubmitting(false)
     }
@@ -101,18 +106,9 @@ function FactoryForm({ onBack, onSuccess }) {
             icon={Building2}
             required
             fullWidth
-            value={data.company}
-            error={errors.company}
-            onChange={(event) => update('company', event.target.value)}
-          />
-          <Input
-            label="نام مسئول فنی"
-            placeholder="نام و نام خانوادگی"
-            icon={User}
-            required
-            value={data.manager}
-            error={errors.manager}
-            onChange={(event) => update('manager', event.target.value)}
+            value={data.companyName}
+            error={errors.companyName}
+            onChange={(event) => update('companyName', event.target.value)}
           />
           <Input
             label="شماره تماس"
@@ -124,13 +120,32 @@ function FactoryForm({ onBack, onSuccess }) {
             onChange={(event) => update('phone', event.target.value)}
           />
           <Input
-            label="صنعت"
-            placeholder="نوع صنعت"
-            icon={Briefcase}
+            label="ایمیل"
+            placeholder="example@email.com"
+            icon={Mail}
             required
+            type="email"
+            value={data.email}
+            error={errors.email}
+            onChange={(event) => update('email', event.target.value)}
+          />
+          <Select
+            label="صنعت"
+            required
+            icon={Building2}
             value={data.industry}
             error={errors.industry}
-            onChange={(event) => update('industry', event.target.value)}
+            onChange={(value) => update('industry', value)}
+            placeholder="انتخاب صنعت"
+            options={[
+              { value: '', label: 'انتخاب صنعت', description: 'زمینه فعالیت کارخانه را انتخاب کنید', icon: Building2 },
+              { value: 'فولاد و ذوب فلزات', label: 'فولاد و ذوب فلزات', description: 'نورد، ذوب، ریخته‌گری و آلیاژها', icon: Flame },
+              { value: 'پتروشیمی و نفت و گاز', label: 'پتروشیمی و نفت و گاز', description: 'پالایش، پلیمر، شیمیایی و گاز', icon: Droplets },
+              { value: 'سیمان و مصالح ساختمانی', label: 'سیمان و مصالح ساختمانی', description: 'سیمان، گچ، آجر و معادن', icon: HardHat },
+              { value: 'صنایع غذایی', label: 'صنایع غذایی', description: 'تولید مواد غذایی و بسته‌بندی', icon: Apple },
+              { value: 'قطعات خودرو و ماشین‌آلات', label: 'قطعات خودرو و ماشین‌آلات', description: 'ساخت قطعات، مونتاژ و بدنه', icon: Car },
+              { value: 'سایر', label: 'سایر', description: 'سایر صنایع تولیدی و خدماتی', icon: MoreHorizontal },
+            ]}
           />
           <Input
             label="شهر"
@@ -140,6 +155,13 @@ function FactoryForm({ onBack, onSuccess }) {
             value={data.city}
             error={errors.city}
             onChange={(event) => update('city', event.target.value)}
+          />
+          <Input
+            label="استان"
+            placeholder="استان"
+            icon={MapPin}
+            value={data.province}
+            onChange={(event) => update('province', event.target.value)}
           />
           <Input
             label="رمز عبور"
@@ -158,21 +180,17 @@ function FactoryForm({ onBack, onSuccess }) {
           <p className="rg-form-section-hint">اختیاری — برای تطبیق بهتر با متخصصان</p>
           <div className="rg-form-grid">
             <Input
-              label="تعداد خطوط تولید"
-              placeholder="مثال: ۵ خط"
+              label="توضیحات کارخانه"
+              placeholder="توضیحات درباره فعالیت‌ها و تجهیزات"
               icon={Package}
-              value={data.lines}
-              onChange={(event) => update('lines', event.target.value)}
-            />
-            <Input
-              label="دستگاه‌های اصلی"
-              placeholder="مثال: CNC، توربین"
-              icon={Cpu}
-              value={data.equipment}
-              onChange={(event) => update('equipment', event.target.value)}
+              fullWidth
+              value={data.description}
+              onChange={(event) => update('description', event.target.value)}
             />
           </div>
         </div>
+
+        {errors.form && <p className="auth-error-text auth-error-text--form">{errors.form}</p>}
 
         <div className="auth-submit" style={{ marginTop: 32 }}>
           <Button type="submit" auth loading={isSubmitting} loadingText="در حال ثبت...">
@@ -189,12 +207,12 @@ function SpecialistForm({ onBack, onSuccess }) {
   const [data, setData] = useState({
     fullName: '',
     phone: '',
+    email: '',
     specialty: '',
     experience: '',
     city: '',
-    devices: '',
-    brands: '',
     skills: '',
+    brands: '',
     password: '',
   })
   const [errors, setErrors] = useState({})
@@ -209,7 +227,6 @@ function SpecialistForm({ onBack, onSuccess }) {
 
   const validate = () => {
     const nextErrors = {}
-
     const v = data
 
     if (!v.fullName.trim()) nextErrors.fullName = 'نام و نام خانوادگی الزامی است'
@@ -217,6 +234,9 @@ function SpecialistForm({ onBack, onSuccess }) {
 
     if (!v.phone.trim()) nextErrors.phone = 'شماره تماس الزامی است'
     else if (!/^09\d{9}$/.test(v.phone.trim())) nextErrors.phone = 'شماره موبایل معتبر نیست (مثال: ۰۹۱۲۳۴۵۶۷۸۹)'
+
+    if (!v.email.trim()) nextErrors.email = 'ایمیل الزامی است'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) nextErrors.email = 'فرمت ایمیل معتبر نیست'
 
     if (!v.specialty.trim()) nextErrors.specialty = 'تخصص اصلی الزامی است'
     if (!v.experience.trim()) nextErrors.experience = 'سال تجربه الزامی است'
@@ -237,10 +257,17 @@ function SpecialistForm({ onBack, onSuccess }) {
 
     setIsSubmitting(true)
     try {
-      await register({ ...data, identifier: data.phone, role: 'specialist' })
+      await register({
+        ...data,
+        identifier: data.phone,
+        role: 'specialist',
+        skills: typeof data.skills === 'string' ? data.skills.split(',').map(s => s.trim()).filter(Boolean) : [],
+        brands: typeof data.brands === 'string' ? data.brands.split(',').map(s => s.trim()).filter(Boolean) : [],
+        experience: parseInt(data.experience, 10),
+      })
       onSuccess()
     } catch (err) {
-      setErrors({ phone: err.message })
+      setErrors({ form: err.message })
     } finally {
       setIsSubmitting(false)
     }
@@ -280,23 +307,28 @@ function SpecialistForm({ onBack, onSuccess }) {
             onChange={(event) => update('phone', event.target.value)}
           />
           <Input
-            label="تخصص اصلی"
-            placeholder={getSpecialtyPlaceholder()}
-            icon={GraduationCap}
+            label="ایمیل"
+            placeholder="example@email.com"
+            icon={Mail}
             required
-            value={data.specialty}
-            error={errors.specialty}
-            onChange={(event) => update('specialty', event.target.value)}
-            list="specialty-suggestions"
+            type="email"
+            value={data.email}
+            error={errors.email}
+            onChange={(event) => update('email', event.target.value)}
           />
-          <datalist id="specialty-suggestions">
-            {specialtyTitles.map((title) => (
-              <option key={title} value={title} />
-            ))}
-          </datalist>
+            <Select
+              label="تخصص اصلی"
+              icon={Wrench}
+              required
+              value={data.specialty}
+              error={errors.specialty}
+              onChange={(value) => update('specialty', value)}
+              options={specialtySelectOptions}
+              placeholder="انتخاب تخصص اصلی"
+            />
           <Input
             label="سال تجربه"
-            placeholder="مثال: ۸ سال"
+            placeholder="مثال: ۵"
             icon={Briefcase}
             required
             value={data.experience}
@@ -329,7 +361,7 @@ function SpecialistForm({ onBack, onSuccess }) {
           <p className="rg-form-section-hint">اختیاری — برای نمایش تخصص دقیق‌تر در پروفایل</p>
           <div className="rg-form-grid">
             <Input
-              label="مهارت‌های فنی"
+              label="مهارت‌های فنی (با کاما جدا کنید)"
               placeholder="مثال: PLC، برق صنعتی، اتوماسیون"
               icon={Wrench}
               fullWidth
@@ -337,15 +369,7 @@ function SpecialistForm({ onBack, onSuccess }) {
               onChange={(event) => update('skills', event.target.value)}
             />
             <Input
-              label="دستگاه‌هایی که تجربه کار با آنها را دارید"
-              placeholder="مثال: CNC، تراش، PLC"
-              icon={Cpu}
-              fullWidth
-              value={data.devices}
-              onChange={(event) => update('devices', event.target.value)}
-            />
-            <Input
-              label="برندهایی که می‌شناسید"
+              label="برندهایی که می‌شناسید (با کاما جدا کنید)"
               placeholder="مثال: Siemens، ABB"
               icon={Tag}
               fullWidth
@@ -354,6 +378,8 @@ function SpecialistForm({ onBack, onSuccess }) {
             />
           </div>
         </div>
+
+        {errors.form && <p className="auth-error-text auth-error-text--form">{errors.form}</p>}
 
         <div className="auth-submit" style={{ marginTop: 32 }}>
           <Button type="submit" auth loading={isSubmitting} loadingText="در حال ثبت...">

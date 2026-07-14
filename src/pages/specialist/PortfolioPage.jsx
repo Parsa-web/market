@@ -3,22 +3,20 @@ import { useState, useRef } from 'react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
 import Badge from '../../components/dashboard/Badge'
+import BrandTag from '../../components/dashboard/BrandTag'
 import EmptyState from '../../components/dashboard/EmptyState'
 import Modal from '../../components/dashboard/Modal'
-import { fileToBase64, formatPersianDate } from '../../utils/dashboardUtils'
+import SkillTag from '../../components/dashboard/SkillTag'
+import { compressImage, fileToBase64, formatPersianDate } from '../../utils/dashboardUtils'
 import { useSpecialist } from '../../hooks/useSpecialist'
 
 const emptyProject = {
   title: '',
   description: '',
   industry: '',
-  machines: '',
-  brands: '',
+  machines: [],
+  brands: [],
   completionDate: '',
-}
-
-function splitList(value) {
-  return value.split(/[,،]/).map((s) => s.trim()).filter(Boolean)
 }
 
 export default function PortfolioPage() {
@@ -27,6 +25,10 @@ export default function PortfolioPage() {
   const [form, setForm] = useState(emptyProject)
   const [images, setImages] = useState([])
   const [successMsg, setSuccessMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [newMachine, setNewMachine] = useState('')
+  const [newBrand, setNewBrand] = useState('')
   const fileInputRef = useRef(null)
 
   const showSuccess = (msg) => {
@@ -38,15 +40,42 @@ export default function PortfolioPage() {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const addMachine = () => {
+    const trimmed = newMachine.trim()
+    if (!trimmed) return
+    if (form.machines.includes(trimmed)) return
+    setForm((prev) => ({ ...prev, machines: [...prev.machines, trimmed] }))
+    setNewMachine('')
+  }
+
+  const removeMachine = (index) => {
+    setForm((prev) => ({ ...prev, machines: prev.machines.filter((_, i) => i !== index) }))
+  }
+
+  const addBrand = () => {
+    const trimmed = newBrand.trim()
+    if (!trimmed) return
+    if (form.brands.includes(trimmed)) return
+    setForm((prev) => ({ ...prev, brands: [...prev.brands, trimmed] }))
+    setNewBrand('')
+  }
+
+  const removeBrand = (index) => {
+    setForm((prev) => ({ ...prev, brands: prev.brands.filter((_, i) => i !== index) }))
+  }
+
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files || [])
     const newImages = await Promise.all(
-      files.map(async (file) => ({
-        id: Date.now() + Math.random(),
-        name: file.name,
-        url: await fileToBase64(file),
-        file,
-      }))
+      files.map(async (file) => {
+        const compressed = file.type.startsWith('image/') ? await compressImage(file) : file
+        return {
+          id: Date.now() + Math.random(),
+          name: file.name,
+          url: await fileToBase64(compressed),
+          file: compressed,
+        }
+      })
     )
     setImages((prev) => [...prev, ...newImages])
   }
@@ -55,21 +84,39 @@ export default function PortfolioPage() {
     setImages((prev) => prev.filter((img) => img.id !== id))
   }
 
-  const handleSave = (e) => {
-    e.preventDefault()
-    if (!form.title.trim()) return
-
-    addPortfolioItem({
-      ...form,
-      machines: splitList(form.machines),
-      brands: splitList(form.brands),
-      images: images.map((img) => ({ name: img.name, url: img.url })),
-      completionDate: form.completionDate ? new Date(form.completionDate).getTime() : Date.now(),
-    })
+  const handleModalClose = () => {
     setModalOpen(false)
     setForm(emptyProject)
     setImages([])
-    showSuccess('پروژه با موفقیت اضافه شد')
+    setErrorMsg('')
+    setNewMachine('')
+    setNewBrand('')
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    if (!form.title.trim()) return
+    setErrorMsg('')
+    setSaving(true)
+
+    try {
+      await addPortfolioItem({
+        title: form.title,
+        description: form.description,
+        industry: form.industry,
+        machines: form.machines,
+        brands: form.brands,
+        images: images.map((img) => ({ name: img.name, url: img.url })),
+        completionDate: form.completionDate ? new Date(form.completionDate).getTime() : Date.now(),
+      })
+      setModalOpen(false)
+      setForm(emptyProject)
+      setImages([])
+      showSuccess('پروژه با موفقیت اضافه شد')
+    } catch {
+      setErrorMsg('خطا در ذخیره پروژه. لطفاً دوباره تلاش کنید.')
+    }
+    setSaving(false)
   }
 
   const openModal = () => {
@@ -134,7 +181,7 @@ export default function PortfolioPage() {
                     <button
                       type="button"
                       className="dash-icon-btn dash-icon-btn--danger"
-                      onClick={() => { removePortfolioItem(project.id); showSuccess('پروژه حذف شد') }}
+                      onClick={async () => { try { await removePortfolioItem(project.id); showSuccess('پروژه حذف شد') } catch { showSuccess('خطا در حذف پروژه') } }}
                       aria-label="حذف"
                     >
                       <Trash2 size={16} />
@@ -178,7 +225,7 @@ export default function PortfolioPage() {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="افزودن پروژه">
+      <Modal open={modalOpen} onClose={handleModalClose} title="افزودن پروژه">
         <form className="dash-form" onSubmit={handleSave}>
           <Input label="عنوان پروژه" icon={FolderOpen} value={form.title} onChange={(e) => update('title', e.target.value)} fullWidth required />
           <div className="auth-field rg-full">
@@ -191,8 +238,57 @@ export default function PortfolioPage() {
             />
           </div>
           <Input label="دسته صنعتی" icon={Factory} value={form.industry} onChange={(e) => update('industry', e.target.value)} fullWidth />
-          <Input label="دستگاه‌ها (با کاما)" icon={Wrench} value={form.machines} onChange={(e) => update('machines', e.target.value)} fullWidth />
-          <Input label="برندها (با کاما)" icon={Tags} value={form.brands} onChange={(e) => update('brands', e.target.value)} fullWidth />
+
+          <div className="dash-form-field">
+            <label className="auth-field-label">دستگاه‌ها</label>
+            <div className="dash-add-form">
+              <Input
+                icon={Wrench}
+                placeholder="نام دستگاه را وارد کنید"
+                value={newMachine}
+                onChange={(e) => setNewMachine(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMachine() } }}
+                fullWidth
+              />
+              <Button type="button" variant="primary" onClick={addMachine}>
+                <Plus size={16} />
+                افزودن
+              </Button>
+            </div>
+            {form.machines.length > 0 && (
+              <div className="dash-tags-grid" style={{ marginTop: 8 }}>
+                {form.machines.map((m, i) => (
+                  <SkillTag key={m} label={m} onRemove={() => removeMachine(i)} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="dash-form-field">
+            <label className="auth-field-label">برندها</label>
+            <div className="dash-add-form">
+              <Input
+                icon={Tags}
+                placeholder="نام برند را وارد کنید"
+                value={newBrand}
+                onChange={(e) => setNewBrand(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addBrand() } }}
+                fullWidth
+              />
+              <Button type="button" variant="primary" onClick={addBrand}>
+                <Plus size={16} />
+                افزودن
+              </Button>
+            </div>
+            {form.brands.length > 0 && (
+              <div className="dash-tags-grid" style={{ marginTop: 8 }}>
+                {form.brands.map((b, i) => (
+                  <BrandTag key={b} label={b} onRemove={() => removeBrand(i)} />
+                ))}
+              </div>
+            )}
+          </div>
+
           <Input label="تاریخ تکمیل" icon={CalendarDays} type="date" value={form.completionDate} onChange={(e) => update('completionDate', e.target.value)} fullWidth />
 
           <div className="dash-form-field">
@@ -221,9 +317,11 @@ export default function PortfolioPage() {
             </div>
           </div>
 
+          {errorMsg && <div className="dash-toast dash-toast--error">{errorMsg}</div>}
+
           <div className="dash-modal-actions">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>انصراف</Button>
-            <Button type="submit" variant="primary">ذخیره</Button>
+            <Button type="button" variant="outline" onClick={handleModalClose}>انصراف</Button>
+            <Button type="submit" variant="primary" loading={saving} loadingText="در حال ذخیره...">ذخیره</Button>
           </div>
         </form>
       </Modal>

@@ -16,7 +16,34 @@ import type { Specialist, Filters } from '../components/specialists/types'
 import heroImage from '../assets/images/avatar.png'
 import styles from './SpecialistsPage.module.css'
 
-const ALL_CATEGORIES = [
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+function toSpecialistCard(data: Record<string, unknown>): Specialist {
+  return {
+    id: Number(data.id),
+    firstName: (data.fullName as string || '').split(' ')[0] || '',
+    lastName: (data.fullName as string || '').split(' ').slice(1).join(' ') || '',
+    avatar: '',
+    city: (data.city as string) || '',
+    province: (data.province as string) || '',
+    experienceYears: (data.experience as number) || 0,
+    jobTitle: (data.specialties as string[])?.[0] || '',
+    industry: (data.industry as string) || (data.specialties as string[])?.[0] || '',
+    skills: (data.skills as string[]) || [],
+    machines: ((data.machines as { name: string }[]) || []).map((m) => m.name),
+    brands: (data.brands as string[]) || [],
+    certificates: ((data.certificates as { name: string }[]) || []).map((c) => c.name),
+    portfolio: ((data.portfolio as { title: string; description: string }[]) || []).map((p) => ({ title: p.title, description: p.description })),
+    rating: 4.5,
+    projectsCompleted: 0,
+    availability: (data.availability as string) === 'آماده همکاری' ? 'available' : 'busy',
+    about: (data.bio as string) || (data.introduction as string) || '',
+    languages: ['فارسی'],
+    profileCompletion: 0,
+  }
+}
+
+export const ALL_CATEGORIES = [
   'PLC',
   'اتوماسیون',
   'برق صنعتی',
@@ -64,21 +91,21 @@ export default function SpecialistsPage() {
   useEffect(() => {
     const controller = new AbortController()
 
-    fetch('/data/specialists.json', { signal: controller.signal })
-      .then((res) => {
+    async function load() {
+      try {
+        const res = await fetch(`${API_BASE}/specialists`, { signal: controller.signal })
         if (!res.ok) throw new Error('Failed to load')
-        return res.json()
-      })
-      .then((data: Specialist[]) => {
-        setSpecialists(data)
+        const raw: Record<string, unknown>[] = await res.json()
+        setSpecialists(raw.map(toSpecialistCard))
         setLoading(false)
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name !== 'AbortError') {
           setError(true)
           setLoading(false)
         }
-      })
+      }
+    }
+    load()
 
     return () => controller.abort()
   }, [])
@@ -149,7 +176,7 @@ export default function SpecialistsPage() {
               </Link>
               <Link to="/requests" className={styles.btnOutline}>
                 <Briefcase size={18} />
-                مشاهده درخواست‌های صنعتی
+                مشاهده نیازهای صنعتی
               </Link>
             </div>
           </motion.div>

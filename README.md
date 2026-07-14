@@ -1,77 +1,47 @@
-# React + TypeScript + Vite
+# بازار متخصصان صنعتی
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+پلتفرم اتصال متخصصان فنی به کارخانه‌ها برای پروژه‌های صنعتی.
 
-Currently, two official plugins are available:
+## راه‌اندازی
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev:full
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+این دستور هم‌زمان فرانت‌اند (Vite) روی پورت `5173` و بک‌اند (json-server) روی پورت `3001` را اجرا می‌کند.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## اسکریپت‌ها
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| دستور | توضیح |
+|-------|-------|
+| `npm run dev` | اجرای فقط فرانت‌اند |
+| `npm run server` | اجرای فقط json-server |
+| `npm run dev:full` | اجرای هم‌زمان فرانت‌اند و بک‌اند |
+| `npm run build` | بیلد پروژه |
+| `npm run lint` | بررسی کیفیت کد |
 
-```
+## ساختار پروژه
+
+- `db.json` — پایگاه داده json-server با داده‌های اولیه
+- `src/services/api/apiClient.ts` — کلاینت API برای ارتباط با json-server
+- `src/services/storage/storageService.ts` — لایه دسترسی به داده (REST API)
+- `src/services/` — سرویس‌های تجاری (auth, specialist, factory, etc.)
+- `src/hooks/` — هوک‌های React (useAuth, useSpecialist, useFactory)
+
+## حساب‌های آزمایشی
+
+### کارخانه
+- `fabrique@sanat.com` / `123456`
+- `petrochem@sanat.com` / `123456`
+- `cement@sanat.com` / `123456`
+- `foodind@sanat.com` / `123456`
+- `partsaz@sanat.com` / `123456`
+
+### متخصص
+- `ahmadi@mail.com` / `123456`
+- `moradi@mail.com` / `123456`
+- `rezayi@mail.com` / `123456`
+- `jalali@mail.com` / `123456`
+- `karimi@mail.com` / `123456`
+- `nouri@mail.com` / `123456`

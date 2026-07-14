@@ -19,12 +19,8 @@ const urgencyOptions = [
   { value: 'low', label: 'عادی' },
 ]
 
-const statusOptions = [
-  { value: '', label: 'همه وضعیت‌ها' },
-  { value: 'open', label: 'باز' },
-  { value: 'in_progress', label: 'در حال انجام' },
-  { value: 'closed', label: 'بسته شده' },
-]
+
+
 
 export default function FilterBar({ filters, onChange, industries, machines, brands, provinces, cities, skills }: FilterBarProps) {
   const update = (key: keyof RequestFilters, value: string) => {
@@ -32,10 +28,10 @@ export default function FilterBar({ filters, onChange, industries, machines, bra
   }
 
   const reset = () => {
-    onChange({ search: '', industry: '', machine: '', brand: '', province: '', city: '', skill: '', urgency: '', status: '' })
+    onChange({ search: '', industry: '', machine: '', brand: '', province: '', city: '', skill: '', urgency: '' })
   }
 
-  const hasFilters = filters.industry || filters.machine || filters.brand || filters.province || filters.city || filters.skill || filters.urgency || filters.status
+  const hasFilters = filters.industry || filters.machine || filters.brand || filters.province || filters.city || filters.skill || filters.urgency
 
   return (
     <div className={styles.wrap}>
@@ -108,15 +104,6 @@ export default function FilterBar({ filters, onChange, industries, machines, bra
             aria-label="فیلتر اولویت"
           >
             {urgencyOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
-
-          <select
-            className={styles.select}
-            value={filters.status}
-            onChange={(e) => update('status', e.target.value)}
-            aria-label="فیلتر وضعیت"
-          >
-            {statusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
 
           {hasFilters && (

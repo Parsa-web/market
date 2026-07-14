@@ -2,11 +2,14 @@ import { Award, Download, FileText, Plus, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import Button from '../../components/common/Button'
 import Input from '../../components/common/Input'
+import Select from '../../components/common/Select'
 import Badge from '../../components/dashboard/Badge'
 import EmptyState from '../../components/dashboard/EmptyState'
 import Modal from '../../components/dashboard/Modal'
 import { fileToBase64, formatPersianDate } from '../../utils/dashboardUtils'
 import { useSpecialist } from '../../hooks/useSpecialist'
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 export default function CertificatesPage() {
   const { certificates, addCertificate, removeCertificate } = useSpecialist()
@@ -16,6 +19,7 @@ export default function CertificatesPage() {
   const [form, setForm] = useState({ name: '', type: 'گواهینامه فنی' })
   const [selectedFile, setSelectedFile] = useState(null)
   const [successMsg, setSuccessMsg] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg)
@@ -24,7 +28,21 @@ export default function CertificatesPage() {
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
+    if (file && file.size > MAX_FILE_SIZE) {
+      setErrorMsg('حجم فایل نباید بیشتر از ۱۰ مگابایت باشد')
+      setSelectedFile(null)
+      e.target.value = ''
+      return
+    }
+    setErrorMsg('')
     setSelectedFile(file || null)
+  }
+
+  const handleModalClose = () => {
+    setModalOpen(false)
+    setForm({ name: '', type: 'گواهینامه فنی' })
+    setSelectedFile(null)
+    setErrorMsg('')
   }
 
   const handleUpload = async (e) => {
@@ -32,9 +50,10 @@ export default function CertificatesPage() {
     if (!form.name.trim() || !selectedFile) return
 
     setUploading(true)
+    setErrorMsg('')
     try {
       const dataUrl = await fileToBase64(selectedFile)
-      addCertificate({
+      await addCertificate({
         name: form.name,
         type: form.type,
         fileName: selectedFile.name,
@@ -47,8 +66,8 @@ export default function CertificatesPage() {
       setForm({ name: '', type: 'گواهینامه فنی' })
       setSelectedFile(null)
       showSuccess('مدرک با موفقیت آپلود شد')
-    } catch {
-      showSuccess('خطا در آپلود فایل')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'خطا در آپلود فایل')
     }
     setUploading(false)
   }
@@ -56,6 +75,7 @@ export default function CertificatesPage() {
   return (
     <div className="dash-page">
       {successMsg && <div className="dash-toast dash-toast--success">{successMsg}</div>}
+      {errorMsg && !modalOpen && <div className="dash-toast dash-toast--error">{errorMsg}</div>}
 
       <div className="dash-page-toolbar">
         <p className="dash-page-desc">گواهینامه‌ها، مدارک فنی و مجوزهای حرفه‌ای خود را بارگذاری کنید.</p>
@@ -99,7 +119,7 @@ export default function CertificatesPage() {
                 <button
                   type="button"
                   className="dash-icon-btn dash-icon-btn--danger"
-                  onClick={() => { removeCertificate(cert.id); showSuccess('مدرک حذف شد') }}
+                  onClick={async () => { try { await removeCertificate(cert.id); showSuccess('مدرک حذف شد') } catch { showSuccess('خطا در حذف مدرک') } }}
                   aria-label="حذف"
                 >
                   <Trash2 size={16} />
@@ -110,7 +130,7 @@ export default function CertificatesPage() {
         </div>
       )}
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="آپلود مدرک">
+      <Modal open={modalOpen} onClose={handleModalClose} title="آپلود مدرک">
         <form className="dash-form" onSubmit={handleUpload}>
           <Input
             label="نام مدرک"
@@ -123,24 +143,27 @@ export default function CertificatesPage() {
           />
           <div className="dash-form-field">
             <label className="auth-field-label">نوع مدرک</label>
-            <select
-              className="dash-select"
+            <Select
               value={form.type}
-              onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
-            >
-              <option value="گواهینامه فنی">گواهینامه فنی</option>
-              <option value="مدرک آموزشی">مدرک آموزشی</option>
-              <option value="مجوز">مجوز</option>
-            </select>
+              onChange={(value) => setForm((p) => ({ ...p, type: value }))}
+              options={[
+                { value: 'گواهینامه فنی', label: 'گواهینامه فنی' },
+                { value: 'مدرک آموزشی', label: 'مدرک آموزشی' },
+                { value: 'مجوز', label: 'مجوز' },
+              ]}
+              fullWidth
+            />
           </div>
           <div className="dash-upload-zone" onClick={() => fileRef.current?.click()}>
             <Upload size={24} />
             <span>{selectedFile ? selectedFile.name : 'فایل را انتخاب کنید یا اینجا رها کنید'}</span>
+            <small style={{ display: 'block', fontSize: 11, color: '#94A3B8', marginTop: 4 }}>حداکثر حجم: ۱۰ مگابایت - فرمت‌های مجاز: PDF، JPG، PNG</small>
             <input ref={fileRef} type="file" hidden accept=".pdf,.jpg,.png" onChange={handleFileChange} />
           </div>
+          {errorMsg && <p className="dash-upload-status dash-upload-status--error">{errorMsg}</p>}
           {uploading && <p className="dash-upload-status">در حال آپلود...</p>}
           <div className="dash-modal-actions">
-            <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>انصراف</Button>
+            <Button type="button" variant="outline" onClick={handleModalClose}>انصراف</Button>
             <Button type="submit" variant="primary" loading={uploading} loadingText="در حال آپلود...">
               آپلود
             </Button>

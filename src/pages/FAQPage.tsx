@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import Header from '../components/home/Header'
 import Footer from '../components/home/Footer'
 import HeroSection from '../components/shared/HeroSection'
-import CTASection from '../components/shared/CTASection'
 import Accordion from '../components/shared/Accordion'
 import CategoryTabs from '../components/faq/CategoryTabs'
 import SearchInput from '../components/faq/SearchInput'
@@ -10,12 +9,11 @@ import { useFaq } from '../hooks/useFaq'
 import styles from './FAQPage.module.css'
 
 export default function FAQPage() {
-  const { data, loading, error } = useFaq()
+  const { data } = useFaq()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('')
 
   const filteredFaqs = useMemo(() => {
-    if (!data) return []
     let list = data.faqs
     if (activeCategory) {
       list = list.filter((faq: { category: string }) => faq.category === activeCategory)
@@ -28,9 +26,6 @@ export default function FAQPage() {
     }
     return list
   }, [data, activeCategory, search])
-
-  if (loading) return <div className={styles.app}><Header /><div className={styles.loading}>در حال بارگذاری...</div><Footer /></div>
-  if (error || !data) return <div className={styles.app}><Header /><div className={styles.error}>خطا در بارگذاری اطلاعات</div><Footer /></div>
 
   return (
     <div className={styles.app}>
@@ -62,13 +57,6 @@ export default function FAQPage() {
           )}
         </div>
       </section>
-
-      <CTASection
-        title={data.cta.title}
-        subtitle={data.cta.subtitle}
-        factoryBtn={data.cta.factoryBtn}
-        specialistBtn={data.cta.specialistBtn}
-      />
 
       <Footer />
     </div>

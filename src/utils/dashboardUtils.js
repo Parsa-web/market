@@ -1,5 +1,7 @@
 export function formatPersianDate(timestamp) {
+  if (!timestamp) return 'تاریخ نامشخص'
   const date = new Date(timestamp)
+  if (isNaN(date.getTime())) return 'تاریخ نامعتبر'
   return new Intl.DateTimeFormat('fa-IR', {
     year: 'numeric',
     month: 'short',
@@ -24,8 +26,46 @@ export function fileToBase64(file) {
   })
 }
 
+export function compressImage(file, maxWidth = 1024, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let width = img.width
+      let height = img.height
+      if (width > maxWidth) {
+        height = (height * maxWidth) / width
+        width = maxWidth
+      }
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, { type: 'image/jpeg' })
+          resolve(compressedFile)
+        } else {
+          reject(new Error('Failed to compress image'))
+        }
+      }, 'image/jpeg', quality)
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export function formatBadgeCount(count) {
   return new Intl.NumberFormat('fa-IR').format(count)
+}
+
+export function formatBudget(budget) {
+  if (!budget) return '—'
+  const num = Number(budget)
+  if (!isNaN(num)) {
+    return `${num.toLocaleString('fa-IR')} تومان`
+  }
+  return budget
 }
 
 export const STATUS_LABELS = {
@@ -89,7 +129,7 @@ export function getDashboardPath(role) {
 export const FACTORY_MENU = [
   { path: '/factory', label: 'داشبورد', icon: 'LayoutDashboard', end: true },
   { path: '/factory/requests/new', label: 'ثبت نیاز جدید', icon: 'PlusCircle' },
-  { path: '/factory/requests', label: 'نیازهای صنعتی من', icon: 'ClipboardList' },
+  { path: '/factory/requests', label: 'نیازهای صنعتی من', icon: 'ClipboardList', end: true },
   { path: '/factory/applications', label: 'درخواست‌های دریافتی', icon: 'Users' },
   { path: '/factory/messages', label: 'پیام‌ها', icon: 'MessageSquare' },
   { path: '/factory/profile', label: 'پروفایل کارخانه', icon: 'Building2' },

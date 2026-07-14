@@ -1,8 +1,17 @@
 import { createPortal } from 'react-dom'
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 
 export default function DropdownPortal({ open, onClose, anchorRef, children, align = 'start', width = 240, offset = 22 }) {
   const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [open])
 
   useLayoutEffect(() => {
     if (!open || !anchorRef.current) return

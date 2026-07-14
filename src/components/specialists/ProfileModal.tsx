@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, MapPin, Briefcase, CheckCircle, Languages } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import type { Specialist } from './types'
 import Rating from './Rating'
 import AvailabilityBadge from './AvailabilityBadge'
@@ -147,14 +146,6 @@ export default function ProfileModal({ specialist, onClose }: ProfileModalProps)
                 <ExperienceTimeline specialist={specialist} />
               </div>
 
-              <div className={styles.cta}>
-                <p className={styles.ctaText}>
-                  برای مشاهده نیازهای صنعتی و ارسال درخواست همکاری، در صنعت‌نت ثبت‌نام کنید.
-                </p>
-                <Link to="/register" className={styles.ctaBtn}>
-                  ثبت‌نام در صنعت‌نت
-                </Link>
-              </div>
             </div>
           </motion.div>
         </motion.div>
